@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scrapeCompanies, TOP_TECH_COMPANIES } from './scraper.mjs';
 import { applyToJob } from './auto-apply.mjs';
+import { extractTextFromPdf, parseResumeText } from './resume-parser.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,8 +76,8 @@ app.get('/api/resume', (req, res) => {
   }
 });
 
-// Upload & Store Resume
-app.post('/api/upload-resume', (req, res) => {
+// Upload & Store Resume with Smart Parsing
+app.post('/api/upload-resume', async (req, res) => {
   try {
     const { filename, data } = req.body;
     if (!data) return res.status(400).json({ error: 'No resume data received' });
@@ -84,19 +85,38 @@ app.post('/api/upload-resume', (req, res) => {
     const buffer = Buffer.from(data, 'base64');
     fs.writeFileSync(STORED_RESUME_PATH, buffer);
 
-    // Update profile.json with the stored resume path
+    // Extract text and parse fields from the PDF
+    const rawText = await extractTextFromPdf(buffer);
+    const extracted = parseResumeText(rawText);
+
+    // Update profile.json with the stored resume path and extracted fields
     let profile = {};
     if (fs.existsSync(PROFILE_PATH)) {
       profile = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
     }
     profile.resumePath = STORED_RESUME_PATH;
     profile.resumeFileName = filename || 'resume.pdf';
+
+    // Merge non-empty extracted fields
+    for (const [key, val] of Object.entries(extracted)) {
+      if (val) profile[key] = val;
+    }
+
     fs.writeFileSync(PROFILE_PATH, JSON.stringify(profile, null, 2), 'utf8');
 
-    addLog(`✓ Stored and activated resume: ${profile.resumeFileName} (${(buffer.length / 1024).toFixed(1)} KB)`);
-    res.json({ success: true, filename: profile.resumeFileName, sizeKb: (buffer.length / 1024).toFixed(1) });
+    addLog(`✓ Stored and parsed resume: ${profile.resumeFileName} (${(buffer.length / 1024).toFixed(1)} KB)`);
+    if (Object.keys(extracted).length > 0) {
+      addLog(`  -> Auto-extracted fields: ${Object.keys(extracted).join(', ')}`);
+    }
+
+    res.json({ 
+      success: true, 
+      filename: profile.resumeFileName, 
+      sizeKb: (buffer.length / 1024).toFixed(1),
+      extractedFields: extracted
+    });
   } catch (err) {
-    addLog(`✗ Failed to save resume: ${err.message}`);
+    addLog(`✗ Failed to save/parse resume: ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });

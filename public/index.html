@@ -631,7 +631,16 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
           const data = await res.json();
           if (res.ok) {
             checkResumeStatus();
-            alert(`✓ Resume "${data.filename}" successfully stored and activated!`);
+            loadProfile();
+            const extractedKeys = Object.keys(data.extractedFields || {});
+            if (extractedKeys.length > 0) {
+              const summary = Object.entries(data.extractedFields)
+                .map(([k, v]) => `• ${k}: ${v}`)
+                .join('\n');
+              alert(`✓ Resume "${data.filename}" stored & auto-parsed!\n\nAuto-populated your profile with:\n${summary}\n\nYou can review or adjust them in the "My Profile" tab.`);
+            } else {
+              alert(`✓ Resume "${data.filename}" successfully stored and activated!`);
+            }
           } else {
             alert('Upload failed: ' + (data.error || 'Unknown error'));
           }

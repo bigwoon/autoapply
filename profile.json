@@ -8,7 +8,7 @@
   "linkedin": "https://linkedin.com/in/yourprofile",
   "github": "https://github.com/yourhandle",
   "portfolio": "https://yourportfolio.dev",
-  "resumePath": "./resume.pdf",
+  "resumePath": "C:\\Users\\User\\Documents\\rea-main\\rea-main\\autoapply\\stored_resume.pdf",
   "coverLetter": "I am writing to express my enthusiasm for this role. With my background in building reliable web applications and software systems, I look forward to contributing to your engineering team.",
   "workAuthorization": "Yes",
   "needsSponsorship": "No",
@@ -17,6 +17,6 @@
   "noticePeriod": "Immediately",
   "gender": "Decline to self-identify",
   "veteran": "I am not a protected veteran",
-  "disability": "I do not have a disability"
+  "disability": "I do not have a disability",
+  "resumeFileName": "document (2).pdf"
 }
-
