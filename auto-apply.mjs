@@ -91,22 +91,54 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, on
     }
 
     // 2. Resume / File Uploads
-    const resumePath = path.resolve(profile.resumePath || './resume.pdf');
-    if (fs.existsSync(resumePath)) {
+    const candidatePaths = [
+      profile.resumePath,
+      path.resolve(process.cwd(), 'stored_resume.pdf'),
+      path.resolve(process.cwd(), 'autoapply', 'stored_resume.pdf'),
+      path.resolve(process.cwd(), 'resume.pdf'),
+      path.resolve(process.cwd(), 'autoapply', 'resume.pdf')
+    ].filter(Boolean);
+
+    const resumePath = candidatePaths.find(p => fs.existsSync(p));
+
+    if (resumePath) {
       const fileInputs = await page.$$('input[type="file"]');
-      for (const fileInput of fileInputs) {
-        try {
-          const accept = (await fileInput.getAttribute('accept')) || '';
-          const id = (await fileInput.getAttribute('id')) || '';
-          const name = (await fileInput.getAttribute('name')) || '';
-          if (accept.includes('pdf') || /resume|cv|attachment/i.test(`${id} ${name}`)) {
-            await fileInput.setInputFiles(resumePath);
-            onLog(`    ✓ Attached resume from: ${resumePath}`);
-          }
-        } catch {}
+      if (fileInputs.length > 0) {
+        let attached = false;
+        for (const fileInput of fileInputs) {
+          try {
+            const accept = (await fileInput.getAttribute('accept')) || '';
+            const id = (await fileInput.getAttribute('id')) || '';
+            const name = (await fileInput.getAttribute('name')) || '';
+            const ariaLabel = (await fileInput.getAttribute('aria-label')) || '';
+            const descriptor = `${id} ${name} ${accept} ${ariaLabel}`.toLowerCase();
+
+            // Match resume input or default if single input
+            if (fileInputs.length === 1 || /resume|cv|attachment|document/i.test(descriptor) || accept.includes('pdf')) {
+              await fileInput.setInputFiles(resumePath);
+              await page.evaluate(el => {
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+              }, fileInput);
+              onLog(`    ✓ Attached stored resume: ${path.basename(resumePath)}`);
+              attached = true;
+              break;
+            }
+          } catch (err) {}
+        }
+        if (!attached && fileInputs[0]) {
+          await fileInputs[0].setInputFiles(resumePath);
+          await page.evaluate(el => {
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }, fileInputs[0]);
+          onLog(`    ✓ Attached stored resume to primary file input: ${path.basename(resumePath)}`);
+        }
+      } else {
+        onLog(`    ℹ No file upload input found on this application step.`);
       }
     } else {
-      onLog(`    ⚠ Notice: Resume file not found at ${resumePath}. Place your resume.pdf there to auto-upload.`);
+      onLog(`    ⚠ Notice: No stored resume found. Upload a resume via the dashboard to auto-attach.`);
     }
 
     // 3. Dropdown (Select) Elements

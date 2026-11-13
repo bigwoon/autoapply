@@ -13,11 +13,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const PROFILE_PATH = path.join(__dirname, 'profile.json');
 const HISTORY_PATH = path.join(__dirname, 'history.json');
+const STORED_RESUME_PATH = path.join(__dirname, 'stored_resume.pdf');
 
 // In-memory state for UI log streaming
 let liveLogs = [];
@@ -50,6 +51,52 @@ app.post('/api/profile', (req, res) => {
     addLog('Profile settings updated successfully.');
     res.json({ success: true, message: 'Profile saved' });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Resume Status
+app.get('/api/resume', (req, res) => {
+  try {
+    const exists = fs.existsSync(STORED_RESUME_PATH);
+    let filename = 'resume.pdf';
+    let size = 0;
+    if (exists) {
+      const stats = fs.statSync(STORED_RESUME_PATH);
+      size = (stats.size / 1024).toFixed(1); // KB
+      if (fs.existsSync(PROFILE_PATH)) {
+        const prof = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
+        if (prof.resumeFileName) filename = prof.resumeFileName;
+      }
+    }
+    res.json({ hasResume: exists, filename, sizeKb: size, path: exists ? STORED_RESUME_PATH : null });
+  } catch (err) {
+    res.json({ hasResume: false, error: err.message });
+  }
+});
+
+// Upload & Store Resume
+app.post('/api/upload-resume', (req, res) => {
+  try {
+    const { filename, data } = req.body;
+    if (!data) return res.status(400).json({ error: 'No resume data received' });
+
+    const buffer = Buffer.from(data, 'base64');
+    fs.writeFileSync(STORED_RESUME_PATH, buffer);
+
+    // Update profile.json with the stored resume path
+    let profile = {};
+    if (fs.existsSync(PROFILE_PATH)) {
+      profile = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
+    }
+    profile.resumePath = STORED_RESUME_PATH;
+    profile.resumeFileName = filename || 'resume.pdf';
+    fs.writeFileSync(PROFILE_PATH, JSON.stringify(profile, null, 2), 'utf8');
+
+    addLog(`✓ Stored and activated resume: ${profile.resumeFileName} (${(buffer.length / 1024).toFixed(1)} KB)`);
+    res.json({ success: true, filename: profile.resumeFileName, sizeKb: (buffer.length / 1024).toFixed(1) });
+  } catch (err) {
+    addLog(`✗ Failed to save resume: ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });

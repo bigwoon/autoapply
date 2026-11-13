@@ -52,6 +52,34 @@
     <!-- ================= TAB 1: AUTOPILOT ================= -->
     <section id="tab-autopilot" class="space-y-6">
       
+      <!-- Stored Resume Status Banner -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div id="resumeStatusIcon" class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <i class="fa-solid fa-file-pdf text-lg"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-white">Stored Application Resume:</span>
+              <span id="resumeBadge" class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                Checking...
+              </span>
+            </div>
+            <p id="resumeDetails" class="text-xs text-slate-400">
+              Upload your PDF resume once. It will automatically attach to every job you apply to.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="file" id="resumeFileInput" accept=".pdf" class="hidden" onchange="handleResumeUpload(event)">
+          <button onclick="document.getElementById('resumeFileInput').click()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition border border-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-upload text-indigo-400"></i>
+            <span id="uploadResumeBtnText">Upload Resume (.pdf)</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Scraper Controls Card -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <h2 class="text-base font-semibold text-white mb-4 flex items-center gap-2">
@@ -558,8 +586,65 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
       `).join('');
     }
 
+    // Resume Status & Upload
+    async function checkResumeStatus() {
+      try {
+        const res = await fetch('/api/resume');
+        const data = await res.json();
+        const badge = document.getElementById('resumeBadge');
+        const details = document.getElementById('resumeDetails');
+        const icon = document.getElementById('resumeStatusIcon');
+        const btnText = document.getElementById('uploadResumeBtnText');
+        
+        if (data.hasResume) {
+          badge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+          badge.innerHTML = `<i class="fa-solid fa-check mr-1"></i> ${data.filename} (${data.sizeKb} KB)`;
+          details.innerHTML = `<span class="text-emerald-400 font-medium">Ready:</span> AutoApply will automatically attach this resume to every application.`;
+          icon.className = 'w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400';
+          btnText.innerText = 'Replace Resume';
+        } else {
+          badge.className = 'text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30';
+          badge.innerText = 'No Resume Stored';
+          details.innerText = 'Upload your PDF resume once. It will automatically attach to every job you apply to.';
+          icon.className = 'w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400';
+          btnText.innerText = 'Upload Resume (.pdf)';
+        }
+      } catch {}
+    }
+
+    async function handleResumeUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        return alert('Please select a valid .pdf file.');
+      }
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result.split(',')[1];
+        try {
+          const res = await fetch('/api/upload-resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: file.name, data: base64 })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            checkResumeStatus();
+            alert(`✓ Resume "${data.filename}" successfully stored and activated!`);
+          } else {
+            alert('Upload failed: ' + (data.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Upload error: ' + err.message);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
     // Initial load
     loadProfile();
+    checkResumeStatus();
   </script>
 </body>
 </html>
