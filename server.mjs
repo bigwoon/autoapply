@@ -3,7 +3,7 @@ import cors from 'cors';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scrapeCompanies } from './scraper.mjs';
+import { scrapeCompanies, TOP_TECH_COMPANIES } from './scraper.mjs';
 import { applyToJob } from './auto-apply.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -54,18 +54,47 @@ app.post('/api/profile', (req, res) => {
   }
 });
 
-// 3. Scrape Jobs
+// 3. Get Top Companies
+app.get('/api/companies', (req, res) => {
+  res.json({ topCompanies: TOP_TECH_COMPANIES });
+});
+
+// 4. Scrape Jobs (Supports Position & Role Filter)
 app.post('/api/scrape', async (req, res) => {
-  const { companies } = req.body;
-  if (!companies || !Array.isArray(companies)) {
-    return res.status(400).json({ error: 'Expected array of company slugs' });
+  let { companies, position, useTopCompanies = false } = req.body;
+  
+  if (useTopCompanies || (!companies && !Array.isArray(companies))) {
+    companies = TOP_TECH_COMPANIES.slice(0, 15);
+  } else if (!Array.isArray(companies) || companies.length === 0) {
+    return res.status(400).json({ error: 'Expected array of company slugs or useTopCompanies=true' });
   }
 
-  addLog(`Starting job scrape for ${companies.length} companies: ${companies.join(', ')}`);
+  const positionLabel = position && position.trim() ? `for position: "${position.trim()}"` : '(all positions)';
+  addLog(`Starting job scrape across ${companies.length} companies ${positionLabel}`);
+  
   try {
-    const jobs = await scrapeCompanies(companies, addLog);
-    addLog(`Scraping finished. Total jobs found: ${jobs.length}`);
-    res.json({ success: true, count: jobs.length, jobs });
+    const rawJobs = await scrapeCompanies(companies, addLog);
+    let matchedJobs = rawJobs;
+
+    if (position && position.trim()) {
+      const keywords = position.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+      matchedJobs = rawJobs.filter(job => {
+        const title = (job.title || '').toLowerCase();
+        const dept = (job.department || '').toLowerCase();
+        return keywords.some(kw => title.includes(kw) || dept.includes(kw));
+      });
+      addLog(`Filtered from ${rawJobs.length} total roles down to ${matchedJobs.length} matching "${position}"!`);
+    } else {
+      addLog(`Scraping finished. Total jobs found: ${rawJobs.length}`);
+    }
+
+    res.json({ 
+      success: true, 
+      count: matchedJobs.length, 
+      totalScraped: rawJobs.length, 
+      position: position || null,
+      jobs: matchedJobs 
+    });
   } catch (err) {
     addLog(`Scraping failed: ${err.message}`);
     res.status(500).json({ error: err.message });
@@ -153,3 +182,4 @@ app.listen(PORT, () => {
   console.log(`🚀 AutoApply Dashboard running at: http://localhost:${PORT}`);
   console.log(`======================================================\n`);
 });
+

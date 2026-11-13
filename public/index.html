@@ -56,34 +56,68 @@
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <h2 class="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <i class="fa-solid fa-magnifying-glass text-indigo-400"></i>
-          1. Scrape Open Jobs (Greenhouse, Lever, Ashby)
+          1. Scrape Open Jobs by Position & Target Companies
         </h2>
 
-        <div class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <!-- Position / Role Search -->
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1.5">Target Company Slugs (comma separated):</label>
-            <div class="flex gap-2">
-              <input type="text" id="companyInput" value="stripe, figma, discord, cloudflare, datadog" 
-                class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-white" 
-                placeholder="e.g. stripe, figma, coinbases, reddit">
-              <button onclick="handleScrape()" id="scrapeBtn" 
-                class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-indigo-600/20 text-sm">
-                <i class="fa-solid fa-arrows-rotate"></i>
-                Scrape Jobs
-              </button>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>Target Job Position / Role Keywords:</span>
+              <span class="text-[10px] text-indigo-400">e.g. Software Engineer, Frontend</span>
+            </label>
+            <input type="text" id="positionInput" value="Software Engineer" 
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-white font-medium" 
+              placeholder="e.g. Software Engineer, Frontend, Python, Data Analyst">
+            
+            <!-- Quick Position Tags -->
+            <div class="flex flex-wrap items-center gap-1.5 pt-2">
+              <span class="text-[11px] text-slate-500">Quick roles:</span>
+              <button onclick="setPosition('Software Engineer')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Software Engineer</button>
+              <button onclick="setPosition('Frontend')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Frontend</button>
+              <button onclick="setPosition('Backend')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Backend</button>
+              <button onclick="setPosition('Full Stack')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Full Stack</button>
+              <button onclick="setPosition('Data Engineer')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Data Engineer</button>
+              <button onclick="setPosition('Product Manager')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Product Manager</button>
             </div>
           </div>
 
-          <!-- Quick tags -->
-          <div class="flex flex-wrap items-center gap-2 pt-1">
-            <span class="text-xs text-slate-400">Quick add:</span>
-            <button onclick="addCompany('stripe')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Stripe</button>
-            <button onclick="addCompany('figma')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Figma</button>
-            <button onclick="addCompany('discord')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Discord</button>
-            <button onclick="addCompany('datadog')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Datadog</button>
-            <button onclick="addCompany('cloudflare')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Cloudflare</button>
-            <button onclick="addCompany('openai')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ OpenAI</button>
+          <!-- Target Companies Input -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-medium text-slate-300">Target Companies:</label>
+              <label class="flex items-center gap-1.5 text-xs text-indigo-400 cursor-pointer">
+                <input type="checkbox" id="useTopCompaniesCheckbox" checked onchange="toggleTopCompanies(this.checked)" class="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0">
+                <span>Top 15 Tech Boards</span>
+              </label>
+            </div>
+            <input type="text" id="companyInput" value="stripe, figma, discord, cloudflare, datadog, coinbase, reddit" 
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-white" 
+              placeholder="e.g. stripe, figma, discord, cloudflare">
+            
+            <!-- Quick Company Tags -->
+            <div class="flex flex-wrap items-center gap-1.5 pt-2">
+              <span class="text-[11px] text-slate-500">Add company:</span>
+              <button onclick="addCompany('stripe')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Stripe</button>
+              <button onclick="addCompany('figma')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Figma</button>
+              <button onclick="addCompany('discord')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Discord</button>
+              <button onclick="addCompany('datadog')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Datadog</button>
+              <button onclick="addCompany('cloudflare')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Cloudflare</button>
+              <button onclick="addCompany('openai')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ OpenAI</button>
+            </div>
           </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+          <div class="text-xs text-slate-400">
+            Searches ATS boards (Greenhouse, Lever, Ashby) directly without browser rate limits.
+          </div>
+          <button onclick="handleScrape()" id="scrapeBtn" 
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-indigo-600/20 text-sm">
+            <i class="fa-solid fa-bolt"></i>
+            Search & Scrape Position
+          </button>
         </div>
       </div>
 
@@ -294,7 +328,22 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
       if (tab === 'history') loadHistory();
     }
 
+    function setPosition(pos) {
+      document.getElementById('positionInput').value = pos;
+    }
+
+    function toggleTopCompanies(checked) {
+      const input = document.getElementById('companyInput');
+      input.disabled = checked;
+      input.classList.toggle('opacity-50', checked);
+    }
+
     function addCompany(name) {
+      const chk = document.getElementById('useTopCompaniesCheckbox');
+      if (chk.checked) {
+        chk.checked = false;
+        toggleTopCompanies(false);
+      }
       const input = document.getElementById('companyInput');
       const companies = input.value.split(',').map(s => s.trim()).filter(Boolean);
       if (!companies.includes(name)) {
@@ -303,31 +352,43 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
       }
     }
 
-    // Scrape Jobs
+    // Scrape Jobs (Filtered by Position)
     async function handleScrape() {
+      const position = document.getElementById('positionInput').value.trim();
+      const useTop = document.getElementById('useTopCompaniesCheckbox').checked;
       const input = document.getElementById('companyInput').value;
       const companies = input.split(',').map(s => s.trim()).filter(Boolean);
-      if (companies.length === 0) return alert('Enter at least one company name.');
+
+      if (!useTop && companies.length === 0) {
+        return alert('Please select "Top 15 Tech Boards" or enter at least one company name.');
+      }
 
       const btn = document.getElementById('scrapeBtn');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scraping...';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching...';
 
       try {
         const res = await fetch('/api/scrape', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companies })
+          body: JSON.stringify({ 
+            companies: useTop ? [] : companies, 
+            position,
+            useTopCompanies: useTop 
+          })
         });
         const data = await res.json();
         allScrapedJobs = data.jobs || [];
         selectedJobIds.clear();
         renderJobsTable();
+        
+        // Auto-select all matching jobs by default
+        selectAllJobs(true);
       } catch (err) {
         alert('Failed to scrape: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Scrape Jobs';
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Search & Scrape Position';
       }
     }
 
@@ -502,3 +563,4 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
   </script>
 </body>
 </html>
+

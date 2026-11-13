@@ -3,6 +3,14 @@
  * Direct ATS JSON ingestion - fast, clean, and never blocked by bot shields.
  */
 
+export const TOP_TECH_COMPANIES = [
+  'stripe', 'figma', 'discord', 'cloudflare', 'datadog',
+  'coinbase', 'reddit', 'openai', 'anthropic', 'scale',
+  'airbnb', 'uber', 'doordash', 'pinterest', 'instacart',
+  'robinhood', 'square', 'dropbox', 'hubspot', 'gitlab',
+  'postman', 'notion', 'ramp', 'brex', 'plaid'
+];
+
 /**
  * Scrape Greenhouse jobs for a given company slug
  */
@@ -148,3 +156,4 @@ export async function scrapeCompanies(companies, onLog = console.log) {
 
   return allJobs;
 }
+

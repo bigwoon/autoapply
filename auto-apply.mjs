@@ -194,3 +194,4 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, on
     await browser.close();
   }
 }
+
