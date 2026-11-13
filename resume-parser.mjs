@@ -78,7 +78,7 @@ export function parseResumeText(rawText) {
   }
 
   // 7. Location (City, State)
-  const locationMatch = rawText.match(/\b([A-Z][a-zA-Z\s]+),\s*([A-Z]{2})\b/);
+  const locationMatch = rawText.match(/\b([A-Z][a-zA-Z ]{2,30}),\s*([A-Z]{2})\b/);
   if (locationMatch) {
     result.currentLocation = `${locationMatch[1].trim()}, ${locationMatch[2]}`;
   }
@@ -89,5 +89,32 @@ export function parseResumeText(rawText) {
     result.coverLetter = summaryMatch[1].replace(/\s+/g, ' ').trim();
   }
 
+  // 9. Years of Experience Detection
+  const yoeMatch = rawText.match(/(\d+)\+?\s*years?(?:\s*of)?\s*(?:experience|building|engineering|working)/i);
+  if (yoeMatch) {
+    result.yearsOfExperience = yoeMatch[1];
+  }
+
+  // 10. Education Extraction
+  const eduMatch = rawText.match(/(?:B\.?S\.?|B\.?A\.?|Bachelor|M\.?S\.?|Master|Ph\.?D\.?)\s*(?:in\s*[A-Za-z\s]+)?\s*[-–—]\s*([A-Za-z\s]+(?:University|College|Institute|Berkeley|Stanford|MIT|UCLA|Harvard|NYU)[A-Za-z\s]*)/i);
+  if (eduMatch) {
+    result.educationSchool = eduMatch[1].trim();
+  }
+
+  // 11. Key Technical Skills
+  const COMMON_SKILLS = [
+    'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin',
+    'React', 'Node.js', 'Next.js', 'Vue', 'Angular', 'Express', 'Django', 'FastAPI', 'Spring Boot', 'GraphQL',
+    'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'Docker', 'Kubernetes', 'AWS', 'GCP', 'Azure', 'Git', 'CI/CD'
+  ];
+  const matchedSkills = COMMON_SKILLS.filter(skill => {
+    const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(rawText);
+  });
+  if (matchedSkills.length > 0) {
+    result.skills = matchedSkills;
+  }
+
   return result;
 }
+
