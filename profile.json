@@ -1,0 +1,21 @@
+{
+  "firstName": "YourFirstName",
+  "lastName": "YourLastName",
+  "fullName": "YourFirstName YourLastName",
+  "email": "youremail@example.com",
+  "phone": "+1 (555) 000-0000",
+  "currentLocation": "San Francisco, CA",
+  "linkedin": "https://linkedin.com/in/yourprofile",
+  "github": "https://github.com/yourhandle",
+  "portfolio": "https://yourportfolio.dev",
+  "resumePath": "./resume.pdf",
+  "coverLetter": "I am writing to express my enthusiasm for this role. With my background in building reliable web applications and software systems, I look forward to contributing to your engineering team.",
+  "workAuthorization": "Yes",
+  "needsSponsorship": "No",
+  "salaryExpectation": "130000",
+  "yearsOfExperience": "3",
+  "noticePeriod": "Immediately",
+  "gender": "Decline to self-identify",
+  "veteran": "I am not a protected veteran",
+  "disability": "I do not have a disability"
+}

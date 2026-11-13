@@ -1,0 +1,28 @@
+{
+  "name": "autoapply",
+  "version": "1.0.0",
+  "description": "Local, free, AI-ready job scraper and auto-apply dashboard using Playwright",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "install:browsers": "npx playwright install chromium"
+  },
+  "keywords": [
+    "job-scraper",
+    "auto-apply",
+    "playwright",
+    "greenhouse",
+    "lever",
+    "ashby",
+    "job-application"
+  ],
+  "author": "bigwoon",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "playwright": "^1.50.0"
+  }
+}

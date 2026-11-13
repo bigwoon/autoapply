@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoApply - Job Scraper & Autopilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .terminal-scroll::-webkit-scrollbar { width: 6px; }
+    .terminal-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-paper-plane text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            AutoApply
+            <span class="text-xs bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-medium">Free & Local</span>
+          </h1>
+          <p class="text-xs text-slate-400">Playwright-powered Scraping & Form Automation</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 bg-slate-800/60 p-1 rounded-xl border border-slate-700/50">
+        <button onclick="switchTab('autopilot')" id="tab-btn-autopilot" class="px-4 py-1.5 text-sm font-medium rounded-lg transition-all bg-indigo-600 text-white shadow">
+          <i class="fa-solid fa-bolt mr-2"></i>Autopilot
+        </button>
+        <button onclick="switchTab('profile')" id="tab-btn-profile" class="px-4 py-1.5 text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-white">
+          <i class="fa-solid fa-user mr-2"></i>My Profile
+        </button>
+        <button onclick="switchTab('history')" id="tab-btn-history" class="px-4 py-1.5 text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-white">
+          <i class="fa-solid fa-clock-rotate-left mr-2"></i>History
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ================= TAB 1: AUTOPILOT ================= -->
+    <section id="tab-autopilot" class="space-y-6">
+      
+      <!-- Scraper Controls Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-semibold text-white mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass text-indigo-400"></i>
+          1. Scrape Open Jobs (Greenhouse, Lever, Ashby)
+        </h2>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Target Company Slugs (comma separated):</label>
+            <div class="flex gap-2">
+              <input type="text" id="companyInput" value="stripe, figma, discord, cloudflare, datadog" 
+                class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-white" 
+                placeholder="e.g. stripe, figma, coinbases, reddit">
+              <button onclick="handleScrape()" id="scrapeBtn" 
+                class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-indigo-600/20 text-sm">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                Scrape Jobs
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick tags -->
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <span class="text-xs text-slate-400">Quick add:</span>
+            <button onclick="addCompany('stripe')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Stripe</button>
+            <button onclick="addCompany('figma')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Figma</button>
+            <button onclick="addCompany('discord')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Discord</button>
+            <button onclick="addCompany('datadog')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Datadog</button>
+            <button onclick="addCompany('cloudflare')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ Cloudflare</button>
+            <button onclick="addCompany('openai')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">+ OpenAI</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scraped Jobs & Batch Runner Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left: Job Table (2 Cols) -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+            <div>
+              <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                <i class="fa-solid fa-briefcase text-indigo-400"></i>
+                2. Scraped Jobs
+                <span id="jobCountBadge" class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">0 jobs</span>
+              </h2>
+            </div>
+            
+            <!-- Role Search / Filter -->
+            <div class="flex items-center gap-2">
+              <input type="text" id="roleFilter" oninput="renderJobsTable()" placeholder="Filter title/location..." 
+                class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 w-44">
+              <button onclick="selectAllJobs(true)" class="text-xs text-indigo-400 hover:underline">Select All</button>
+            </div>
+          </div>
+
+          <!-- Jobs Table Container -->
+          <div class="overflow-y-auto max-h-96 rounded-xl border border-slate-800/80">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-950 text-slate-400 sticky top-0 border-b border-slate-800">
+                <tr>
+                  <th class="p-3 w-8"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)"></th>
+                  <th class="p-3">Role Title</th>
+                  <th class="p-3">Company</th>
+                  <th class="p-3">Location</th>
+                  <th class="p-3">ATS</th>
+                  <th class="p-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="jobsTableBody" class="divide-y divide-slate-800/50">
+                <tr>
+                  <td colspan="6" class="p-8 text-center text-slate-500">
+                    No jobs scraped yet. Enter company names above and click "Scrape Jobs".
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Autopilot Action Bar -->
+          <div class="mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="dryRunToggle" checked class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span class="ml-2.5 text-xs font-medium text-slate-300" id="dryRunLabel">
+                  <span class="text-emerald-400 font-semibold">Dry-Run Mode:</span> Test & Review (No Submit)
+                </span>
+              </label>
+            </div>
+
+            <button onclick="handleBatchApply()" id="applyBtn" 
+              class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold px-6 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/30 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-play"></i>
+              Launch Autopilot on Selected (<span id="selectedCount">0</span>)
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Real-Time Execution Console (1 Col) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <i class="fa-solid fa-terminal text-emerald-400"></i>
+              Live Execution Log
+            </h3>
+            <button onclick="clearLogs()" class="text-xs text-slate-400 hover:text-white">Clear</button>
+          </div>
+          
+          <div id="terminal" class="flex-1 bg-black/70 border border-slate-800/80 rounded-xl p-3 font-mono text-[11px] text-emerald-400 terminal-scroll overflow-y-auto max-h-[380px] min-h-[260px] whitespace-pre-wrap leading-relaxed">
+Ready. Select jobs and trigger Autopilot to see live Playwright steps...
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= TAB 2: MY PROFILE ================= -->
+    <section id="tab-profile" class="hidden space-y-6 max-w-4xl mx-auto">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-semibold text-white mb-6 pb-3 border-b border-slate-800 flex items-center justify-between">
+          <span><i class="fa-solid fa-id-card text-indigo-400 mr-2"></i>Candidate Profile Data</span>
+          <button onclick="saveProfile()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+            Save Profile
+          </button>
+        </h2>
+
+        <form id="profileForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1">First Name</label>
+            <input type="text" id="prof-firstName" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Last Name</label>
+            <input type="text" id="prof-lastName" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Email</label>
+            <input type="email" id="prof-email" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Phone</label>
+            <input type="text" id="prof-phone" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Location (City, State)</label>
+            <input type="text" id="prof-currentLocation" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Resume File Path (.pdf)</label>
+            <input type="text" id="prof-resumePath" placeholder="./resume.pdf" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">LinkedIn Profile URL</label>
+            <input type="url" id="prof-linkedin" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">GitHub Profile URL</label>
+            <input type="url" id="prof-github" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Portfolio / Website</label>
+            <input type="url" id="prof-portfolio" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Salary Expectation ($ USD)</label>
+            <input type="text" id="prof-salaryExpectation" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Authorized to work in target country?</label>
+            <select id="prof-workAuthorization" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Will require Visa Sponsorship now or in future?</label>
+            <select id="prof-needsSponsorship" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-slate-400 mb-1">Standard Cover Letter / Intro</label>
+            <textarea id="prof-coverLetter" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white"></textarea>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ================= TAB 3: HISTORY ================= -->
+    <section id="tab-history" class="hidden space-y-6 max-w-5xl mx-auto">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-semibold text-white mb-4 pb-3 border-b border-slate-800 flex items-center justify-between">
+          <span><i class="fa-solid fa-list-check text-indigo-400 mr-2"></i>Applications Tracked</span>
+          <button onclick="loadHistory()" class="text-xs text-indigo-400 hover:underline">Refresh</button>
+        </h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="p-3">Job Title</th>
+                <th class="p-3">Company</th>
+                <th class="p-3">Applied At</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 text-right">Link</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-slate-800/50">
+              <tr><td colspan="5" class="p-6 text-center text-slate-500">No application history yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let allScrapedJobs = [];
+    let selectedJobIds = new Set();
+
+    // Tab Switching
+    function switchTab(tab) {
+      document.getElementById('tab-autopilot').classList.toggle('hidden', tab !== 'autopilot');
+      document.getElementById('tab-profile').classList.toggle('hidden', tab !== 'profile');
+      document.getElementById('tab-history').classList.toggle('hidden', tab !== 'history');
+
+      ['autopilot', 'profile', 'history'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tab) {
+          btn.className = 'px-4 py-1.5 text-sm font-medium rounded-lg transition-all bg-indigo-600 text-white shadow';
+        } else {
+          btn.className = 'px-4 py-1.5 text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-white';
+        }
+      });
+
+      if (tab === 'profile') loadProfile();
+      if (tab === 'history') loadHistory();
+    }
+
+    function addCompany(name) {
+      const input = document.getElementById('companyInput');
+      const companies = input.value.split(',').map(s => s.trim()).filter(Boolean);
+      if (!companies.includes(name)) {
+        companies.push(name);
+        input.value = companies.join(', ');
+      }
+    }
+
+    // Scrape Jobs
+    async function handleScrape() {
+      const input = document.getElementById('companyInput').value;
+      const companies = input.split(',').map(s => s.trim()).filter(Boolean);
+      if (companies.length === 0) return alert('Enter at least one company name.');
+
+      const btn = document.getElementById('scrapeBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scraping...';
+
+      try {
+        const res = await fetch('/api/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companies })
+        });
+        const data = await res.json();
+        allScrapedJobs = data.jobs || [];
+        selectedJobIds.clear();
+        renderJobsTable();
+      } catch (err) {
+        alert('Failed to scrape: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Scrape Jobs';
+      }
+    }
+
+    function renderJobsTable() {
+      const filter = document.getElementById('roleFilter').value.toLowerCase();
+      const tbody = document.getElementById('jobsTableBody');
+      const filtered = allScrapedJobs.filter(j => 
+        j.title.toLowerCase().includes(filter) || 
+        j.company.toLowerCase().includes(filter) ||
+        j.location.toLowerCase().includes(filter)
+      );
+
+      document.getElementById('jobCountBadge').innerText = `${filtered.length} jobs`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500">No jobs match your filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(job => `
+        <tr class="hover:bg-slate-800/40 transition">
+          <td class="p-3">
+            <input type="checkbox" ${selectedJobIds.has(job.id) ? 'checked' : ''} onchange="toggleJobSelect('${job.id}')">
+          </td>
+          <td class="p-3 font-medium text-white">${job.title}</td>
+          <td class="p-3 capitalize text-slate-300">${job.company}</td>
+          <td class="p-3 text-slate-400">${job.location}</td>
+          <td class="p-3">
+            <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded border ${
+              job.ats === 'greenhouse' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+              job.ats === 'lever' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+              'bg-purple-500/10 text-purple-400 border-purple-500/30'
+            }">${job.ats}</span>
+          </td>
+          <td class="p-3 text-right">
+            <button onclick="applySingle('${job.id}')" class="text-indigo-400 hover:text-indigo-300 font-medium">Apply Now</button>
+          </td>
+        </tr>
+      `).join('');
+
+      updateSelectedCount();
+    }
+
+    function toggleJobSelect(id) {
+      if (selectedJobIds.has(id)) selectedJobIds.delete(id);
+      else selectedJobIds.add(id);
+      updateSelectedCount();
+    }
+
+    function toggleSelectAll(checked) {
+      if (checked) {
+        allScrapedJobs.forEach(j => selectedJobIds.add(j.id));
+      } else {
+        selectedJobIds.clear();
+      }
+      renderJobsTable();
+    }
+
+    function selectAllJobs(checked) {
+      toggleSelectAll(checked);
+      document.getElementById('selectAllCheckbox').checked = checked;
+    }
+
+    function updateSelectedCount() {
+      document.getElementById('selectedCount').innerText = selectedJobIds.size;
+    }
+
+    async function applySingle(jobId) {
+      const job = allScrapedJobs.find(j => j.id === jobId);
+      if (!job) return;
+      const dryRun = document.getElementById('dryRunToggle').checked;
+      await fetch('/api/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobs: [job], dryRun })
+      });
+    }
+
+    async function handleBatchApply() {
+      if (selectedJobIds.size === 0) return alert('Select at least one job to apply to.');
+      const selectedJobs = allScrapedJobs.filter(j => selectedJobIds.has(j.id));
+      const dryRun = document.getElementById('dryRunToggle').checked;
+      
+      const res = await fetch('/api/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobs: selectedJobs, dryRun })
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error);
+    }
+
+    // Terminal Logging Stream Poller
+    setInterval(async () => {
+      try {
+        const res = await fetch('/api/logs');
+        const data = await res.json();
+        const term = document.getElementById('terminal');
+        if (data.logs && data.logs.length > 0) {
+          term.innerText = data.logs.join('\n');
+          term.scrollTop = term.scrollHeight;
+        }
+      } catch {}
+    }, 1500);
+
+    async function clearLogs() {
+      await fetch('/api/logs/clear', { method: 'POST' });
+      document.getElementById('terminal').innerText = 'Logs cleared.';
+    }
+
+    // Profile Management
+    async function loadProfile() {
+      const res = await fetch('/api/profile');
+      const data = await res.json();
+      for (const [key, val] of Object.entries(data)) {
+        const el = document.getElementById(`prof-${key}`);
+        if (el) el.value = val;
+      }
+    }
+
+    async function saveProfile() {
+      const keys = [
+        'firstName', 'lastName', 'email', 'phone', 'currentLocation', 'resumePath',
+        'linkedin', 'github', 'portfolio', 'salaryExpectation', 'workAuthorization',
+        'needsSponsorship', 'coverLetter'
+      ];
+      const payload = {};
+      keys.forEach(k => {
+        const el = document.getElementById(`prof-${k}`);
+        if (el) payload[k] = el.value;
+      });
+      payload.fullName = `${payload.firstName} ${payload.lastName}`.trim();
+
+      await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      alert('Profile saved successfully!');
+    }
+
+    // History
+    async function loadHistory() {
+      const res = await fetch('/api/history');
+      const data = await res.json();
+      const tbody = document.getElementById('historyTableBody');
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">No applications tracked yet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(item => `
+        <tr class="hover:bg-slate-800/40">
+          <td class="p-3 font-medium text-white">${item.title}</td>
+          <td class="p-3 capitalize text-slate-300">${item.company}</td>
+          <td class="p-3 text-slate-400">${new Date(item.timestamp).toLocaleString()}</td>
+          <td class="p-3">
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${
+              item.status === 'Submitted' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+              item.status === 'Dry-Run Completed' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' :
+              'bg-red-500/20 text-red-400 border border-red-500/30'
+            }">${item.status}</span>
+          </td>
+          <td class="p-3 text-right">
+            <a href="${item.applyUrl}" target="_blank" class="text-indigo-400 hover:underline">View Post</a>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Initial load
+    loadProfile();
+  </script>
+</body>
+</html>
