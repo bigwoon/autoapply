@@ -28,8 +28,11 @@ export async function scrapeGreenhouse(companySlug) {
   if (!data.jobs) return [];
 
   return data.jobs.map(job => {
-    const applyUrl = job.absolute_url || '';
-    const isExternal = /myworkdayjobs|taleo|icims|successfactors|brassring/i.test(applyUrl);
+    // Generate direct, guaranteed Greenhouse application form URL (bypasses marketing redirects)
+    const directFormUrl = `https://boards.greenhouse.io/embed/job_app?for=${companySlug}&token=${job.id}`;
+    const rawUrl = job.absolute_url || directFormUrl;
+    const isExternal = /myworkdayjobs|taleo|icims|successfactors|brassring/i.test(rawUrl);
+    
     return {
       id: `gh-${job.id}`,
       originalId: String(job.id),
@@ -37,7 +40,8 @@ export async function scrapeGreenhouse(companySlug) {
       company: companySlug,
       location: job.location?.name || 'Remote/Unspecified',
       department: job.departments?.[0]?.name || 'General',
-      applyUrl,
+      applyUrl: isExternal ? rawUrl : directFormUrl,
+      externalUrl: rawUrl,
       ats: 'greenhouse',
       quickApply: !isExternal,
       applyType: isExternal ? 'external' : 'quick',

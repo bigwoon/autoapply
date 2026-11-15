@@ -31,6 +31,18 @@ function buildFieldRules(profile) {
  */
 export async function applyToJob(applyUrl, profile, options = { dryRun: true, mode: 'quick', onLog: console.log }) {
   const onLog = options.onLog || console.log;
+
+  // Normalize Greenhouse URLs (handle marketing search redirects like stripe.com/jobs/search?gh_jid=XXXX)
+  const ghMatch = applyUrl.match(/[?&]gh_jid=(\d+)/);
+  if (ghMatch) {
+    const domainMatch = applyUrl.match(/https?:\/\/(?:www\.)?([a-zA-Z0-9-]+)\./);
+    const company = domainMatch ? domainMatch[1] : '';
+    if (company) {
+      applyUrl = `https://boards.greenhouse.io/embed/job_app?for=${company}&token=${ghMatch[1]}`;
+      onLog(`  -> Normalized marketing URL to direct Greenhouse application form: ${applyUrl}`);
+    }
+  }
+
   const isExternal = options.mode === 'external';
   const isHeadless = !isExternal && !options.dryRun;
 
@@ -53,6 +65,16 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, mo
     onLog(`  -> Navigating to page...`);
     await page.goto(applyUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(2500); // Allow React/dynamic forms to mount
+
+    // Check if the page has an "Apply" button that needs to be clicked to reveal the form
+    const applyButton = await page.$('a[href*="#app"], button:has-text("Apply for this job"), button:has-text("Apply Now"), a:has-text("Apply for this job")');
+    if (applyButton) {
+      try {
+        await applyButton.scrollIntoViewIfNeeded();
+        await applyButton.click();
+        await page.waitForTimeout(1500);
+      } catch {}
+    }
 
     // 1. Text Inputs and Textareas
     const textInputs = await page.$$('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input:not([type]), textarea');
