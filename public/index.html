@@ -116,10 +116,10 @@
               <label class="text-xs font-medium text-slate-300">Target Companies:</label>
               <label class="flex items-center gap-1.5 text-xs text-indigo-400 cursor-pointer">
                 <input type="checkbox" id="useTopCompaniesCheckbox" checked onchange="toggleTopCompanies(this.checked)" class="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0">
-                <span>Top 15 Tech Boards</span>
+                <span>Top 50+ Tech & AI Boards (3,000+ jobs)</span>
               </label>
             </div>
-            <input type="text" id="companyInput" value="stripe, figma, discord, cloudflare, datadog, coinbase, reddit" 
+            <input type="text" id="companyInput" value="stripe, figma, discord, cloudflare, datadog, coinbase, reddit, anthropic, openai" 
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-white" 
               placeholder="e.g. stripe, figma, discord, cloudflare">
             
@@ -131,6 +131,7 @@
               <button onclick="addCompany('discord')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Discord</button>
               <button onclick="addCompany('datadog')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Datadog</button>
               <button onclick="addCompany('cloudflare')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Cloudflare</button>
+              <button onclick="addCompany('anthropic')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Anthropic</button>
               <button onclick="addCompany('openai')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ OpenAI</button>
             </div>
           </div>
@@ -139,7 +140,7 @@
         <!-- Action Button -->
         <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
           <div class="text-xs text-slate-400">
-            Searches ATS boards (Greenhouse, Lever, Ashby) directly without browser rate limits.
+            Searches ATS boards (Greenhouse, Lever, Ashby) in parallel without browser rate limits.
           </div>
           <button onclick="handleScrape()" id="scrapeBtn" 
             class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-indigo-600/20 text-sm">
@@ -154,7 +155,7 @@
         
         <!-- Left: Job Table (2 Cols) -->
         <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col">
-          <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+          <div class="flex flex-wrap items-center justify-between pb-4 border-b border-slate-800 mb-4 gap-3">
             <div>
               <h2 class="text-base font-semibold text-white flex items-center gap-2">
                 <i class="fa-solid fa-briefcase text-indigo-400"></i>
@@ -163,10 +164,15 @@
               </h2>
             </div>
             
-            <!-- Role Search / Filter -->
-            <div class="flex items-center gap-2">
+            <!-- Quick Apply Toggle & Filters -->
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-1.5 text-xs text-purple-400 font-semibold cursor-pointer bg-purple-500/10 border border-purple-500/30 px-2.5 py-1 rounded-lg">
+                <input type="checkbox" id="quickApplyOnlyToggle" onchange="renderJobsTable()" class="rounded bg-slate-800 border-purple-700 text-purple-600 focus:ring-0">
+                <span>⚡ Quick Apply Only</span>
+              </label>
+
               <input type="text" id="roleFilter" oninput="renderJobsTable()" placeholder="Filter title/location..." 
-                class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 w-44">
+                class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 w-36">
               <button onclick="selectAllJobs(true)" class="text-xs text-indigo-400 hover:underline">Select All</button>
             </div>
           </div>
@@ -180,14 +186,14 @@
                   <th class="p-3">Role Title</th>
                   <th class="p-3">Company</th>
                   <th class="p-3">Location</th>
-                  <th class="p-3">ATS</th>
+                  <th class="p-3">Method</th>
                   <th class="p-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody id="jobsTableBody" class="divide-y divide-slate-800/50">
                 <tr>
                   <td colspan="6" class="p-8 text-center text-slate-500">
-                    No jobs scraped yet. Enter company names above and click "Scrape Jobs".
+                    No jobs scraped yet. Click "Search & Scrape Position" above to load roles.
                   </td>
                 </tr>
               </tbody>
@@ -302,6 +308,32 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
             <textarea id="prof-coverLetter" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white"></textarea>
           </div>
         </form>
+      </div>
+
+      <!-- AI Parser Settings Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-semibold text-white mb-4 pb-3 border-b border-slate-800 flex items-center justify-between">
+          <span><i class="fa-solid fa-wand-magic-sparkles text-purple-400 mr-2"></i>AI Resume Parser (Optional, Free)</span>
+          <span id="aiStatusBadge" class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400 border border-slate-700">Checking...</span>
+        </h2>
+        
+        <p class="text-xs text-slate-400 mb-4">
+          Adding a <strong class="text-white">free Google Gemini API key</strong> upgrades the resume parser to extract full work history, education details, skills, and tailored cover letters — the same quality as Handshake, Sonara, and Simplify.
+          <a href="https://aistudio.google.com/apikey" target="_blank" class="text-indigo-400 hover:underline ml-1">Get a free key →</a>
+        </p>
+
+        <div class="flex gap-2">
+          <input type="password" id="geminiApiKeyInput" placeholder="Paste your Gemini API Key here (AIzaSy...)" 
+            class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono focus:outline-none focus:border-purple-500">
+          <button onclick="saveApiKey()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+            Save Key
+          </button>
+        </div>
+        
+        <div class="mt-3 text-[11px] text-slate-500">
+          <i class="fa-solid fa-shield-halved mr-1"></i>
+          Your key is stored locally in <code>settings.json</code> on your machine. It is never sent anywhere except directly to Google's API.
+        </div>
       </div>
     </section>
 
@@ -422,12 +454,16 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
 
     function renderJobsTable() {
       const filter = document.getElementById('roleFilter').value.toLowerCase();
+      const quickOnly = document.getElementById('quickApplyOnlyToggle')?.checked;
       const tbody = document.getElementById('jobsTableBody');
-      const filtered = allScrapedJobs.filter(j => 
-        j.title.toLowerCase().includes(filter) || 
-        j.company.toLowerCase().includes(filter) ||
-        j.location.toLowerCase().includes(filter)
-      );
+      const filtered = allScrapedJobs.filter(j => {
+        const matchesText = j.title.toLowerCase().includes(filter) || 
+                            j.company.toLowerCase().includes(filter) ||
+                            j.location.toLowerCase().includes(filter);
+        if (!matchesText) return false;
+        if (quickOnly && !j.quickApply) return false;
+        return true;
+      });
 
       document.getElementById('jobCountBadge').innerText = `${filtered.length} jobs`;
 
@@ -445,14 +481,26 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
           <td class="p-3 capitalize text-slate-300">${job.company}</td>
           <td class="p-3 text-slate-400">${job.location}</td>
           <td class="p-3">
-            <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded border ${
-              job.ats === 'greenhouse' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-              job.ats === 'lever' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-              'bg-purple-500/10 text-purple-400 border-purple-500/30'
-            }">${job.ats}</span>
+            ${job.quickApply ? `
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 flex items-center gap-1 w-fit">
+                <i class="fa-solid fa-bolt text-yellow-300"></i> Quick Apply
+              </span>
+            ` : `
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1 w-fit">
+                <i class="fa-solid fa-arrow-up-right-from-square text-indigo-400"></i> External
+              </span>
+            `}
           </td>
           <td class="p-3 text-right">
-            <button onclick="applySingle('${job.id}')" class="text-indigo-400 hover:text-indigo-300 font-medium">Apply Now</button>
+            ${job.quickApply ? `
+              <button onclick="applyJob('${job.id}', 'quick')" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold px-3 py-1 rounded-lg text-xs shadow shadow-purple-600/30 flex items-center gap-1.5 ml-auto">
+                <i class="fa-solid fa-bolt text-yellow-300"></i> Quick Apply
+              </button>
+            ` : `
+              <button onclick="applyJob('${job.id}', 'external')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium px-2.5 py-1 rounded-lg text-xs flex items-center gap-1.5 ml-auto">
+                <i class="fa-solid fa-arrow-up-right-from-square text-indigo-400"></i> Apply Externally
+              </button>
+            `}
           </td>
         </tr>
       `).join('');
@@ -484,14 +532,14 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
       document.getElementById('selectedCount').innerText = selectedJobIds.size;
     }
 
-    async function applySingle(jobId) {
+    async function applyJob(jobId, mode) {
       const job = allScrapedJobs.find(j => j.id === jobId);
       if (!job) return;
       const dryRun = document.getElementById('dryRunToggle').checked;
       await fetch('/api/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobs: [job], dryRun })
+        body: JSON.stringify({ jobs: [job], dryRun, mode })
       });
     }
 
@@ -633,11 +681,13 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
             checkResumeStatus();
             loadProfile();
             const extractedKeys = Object.keys(data.extractedFields || {});
+            const engine = data.parserEngine === 'gemini-ai' ? '🤖 AI (Gemini)' : '⚡ Local';
             if (extractedKeys.length > 0) {
               const summary = Object.entries(data.extractedFields)
+                .filter(([k, v]) => v && typeof v !== 'object')
                 .map(([k, v]) => `• ${k}: ${v}`)
                 .join('\n');
-              alert(`✓ Resume "${data.filename}" stored & auto-parsed!\n\nAuto-populated your profile with:\n${summary}\n\nYou can review or adjust them in the "My Profile" tab.`);
+              alert(`✓ Resume "${data.filename}" stored & auto-parsed!\n\nParser Engine: ${engine}\n\nAuto-populated your profile with:\n${summary}\n\nYou can review or adjust them in the "My Profile" tab.`);
             } else {
               alert(`✓ Resume "${data.filename}" successfully stored and activated!`);
             }

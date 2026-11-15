@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scrapeCompanies, TOP_TECH_COMPANIES } from './scraper.mjs';
 import { applyToJob } from './auto-apply.mjs';
-import { extractTextFromPdf, parseResumeText } from './resume-parser.mjs';
+import { extractTextFromPdf, parseResumeText, parseResumeSmart } from './resume-parser.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +20,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 const PROFILE_PATH = path.join(__dirname, 'profile.json');
 const HISTORY_PATH = path.join(__dirname, 'history.json');
 const STORED_RESUME_PATH = path.join(__dirname, 'stored_resume.pdf');
+const SETTINGS_PATH = path.join(__dirname, 'settings.json');
+
+function getSettings() {
+  try {
+    if (fs.existsSync(SETTINGS_PATH)) return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8'));
+  } catch {}
+  return {};
+}
 
 // In-memory state for UI log streaming
 let liveLogs = [];
@@ -56,6 +64,28 @@ app.post('/api/profile', (req, res) => {
   }
 });
 
+// Settings (API keys)
+app.get('/api/settings', (req, res) => {
+  const settings = getSettings();
+  // Mask the key for the UI
+  if (settings.geminiApiKey) {
+    settings.geminiApiKeyMasked = settings.geminiApiKey.slice(0, 6) + '...' + settings.geminiApiKey.slice(-4);
+  }
+  res.json(settings);
+});
+
+app.post('/api/settings', (req, res) => {
+  try {
+    const current = getSettings();
+    const updated = { ...current, ...req.body };
+    fs.writeFileSync(SETTINGS_PATH, JSON.stringify(updated, null, 2), 'utf8');
+    addLog('Settings saved.');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Resume Status
 app.get('/api/resume', (req, res) => {
   try {
@@ -87,7 +117,10 @@ app.post('/api/upload-resume', async (req, res) => {
 
     // Extract text and parse fields from the PDF
     const rawText = await extractTextFromPdf(buffer);
-    const extracted = parseResumeText(rawText);
+    const settings = getSettings();
+    const extracted = await parseResumeSmart(rawText, settings.geminiApiKey || null);
+    const engine = extracted._parserEngine || 'local-regex';
+    delete extracted._parserEngine;
 
     // Update profile.json with the stored resume path and extracted fields
     let profile = {};
@@ -104,7 +137,7 @@ app.post('/api/upload-resume', async (req, res) => {
 
     fs.writeFileSync(PROFILE_PATH, JSON.stringify(profile, null, 2), 'utf8');
 
-    addLog(`✓ Stored and parsed resume: ${profile.resumeFileName} (${(buffer.length / 1024).toFixed(1)} KB)`);
+    addLog(`✓ Stored and parsed resume: ${profile.resumeFileName} (${(buffer.length / 1024).toFixed(1)} KB) [engine: ${engine}]`);
     if (Object.keys(extracted).length > 0) {
       addLog(`  -> Auto-extracted fields: ${Object.keys(extracted).join(', ')}`);
     }
@@ -113,7 +146,8 @@ app.post('/api/upload-resume', async (req, res) => {
       success: true, 
       filename: profile.resumeFileName, 
       sizeKb: (buffer.length / 1024).toFixed(1),
-      extractedFields: extracted
+      extractedFields: extracted,
+      parserEngine: engine
     });
   } catch (err) {
     addLog(`✗ Failed to save/parse resume: ${err.message}`);
@@ -168,9 +202,9 @@ app.post('/api/scrape', async (req, res) => {
   }
 });
 
-// 4. Trigger Auto-Apply (Single or Batch)
+// 4. Trigger Auto-Apply (Single or Batch, Quick Apply vs Apply Externally)
 app.post('/api/apply', async (req, res) => {
-  const { jobs, dryRun = true } = req.body;
+  const { jobs, dryRun = true, mode } = req.body;
   if (!jobs || !Array.isArray(jobs) || jobs.length === 0) {
     return res.status(400).json({ error: 'No jobs provided' });
   }
@@ -181,7 +215,7 @@ app.post('/api/apply', async (req, res) => {
 
   const profile = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
   isRunning = true;
-  addLog(`Starting Autopilot run on ${jobs.length} jobs (Dry-Run: ${dryRun})...`);
+  addLog(`Starting application run on ${jobs.length} jobs (Dry-Run: ${dryRun}, Mode: ${mode || 'auto-detect'})...`);
 
   // Run in background so HTTP response returns immediately
   (async () => {
@@ -189,10 +223,17 @@ app.post('/api/apply', async (req, res) => {
 
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
-      addLog(`\n[${i + 1}/${jobs.length}] Processing: ${job.title} at ${job.company}`);
+      const jobMode = mode || (job.quickApply ? 'quick' : 'external');
+      addLog(`\n[${i + 1}/${jobs.length}] [${jobMode === 'quick' ? '⚡ QUICK APPLY' : '↗ APPLY EXTERNALLY'}] ${job.title} at ${job.company}`);
       
-      const result = await applyToJob(job.applyUrl, profile, { dryRun, onLog: addLog });
+      const result = await applyToJob(job.applyUrl, profile, { dryRun, mode: jobMode, onLog: addLog });
       
+      let statusStr = 'Failed';
+      if (result.success) {
+        if (jobMode === 'external') statusStr = 'Opened in Browser';
+        else statusStr = dryRun ? 'Dry-Run Completed' : 'Quick Applied';
+      }
+
       history.unshift({
         id: job.id,
         title: job.title,
@@ -200,27 +241,28 @@ app.post('/api/apply', async (req, res) => {
         applyUrl: job.applyUrl,
         timestamp: new Date().toISOString(),
         dryRun,
-        status: result.success ? (dryRun ? 'Dry-Run Completed' : 'Submitted') : 'Failed',
+        mode: jobMode,
+        status: statusStr,
         error: result.error || null
       });
 
       fs.writeFileSync(HISTORY_PATH, JSON.stringify(history.slice(0, 500), null, 2), 'utf8');
 
       // 4-second breather between applications
-      if (i < jobs.length - 1) {
+      if (i < jobs.length - 1 && jobMode !== 'external') {
         addLog('Pausing 4s before next application...');
         await new Promise(r => setTimeout(r, 4000));
       }
     }
 
-    addLog('\n=== AUTOPILOT BATCH FINISHED ===');
+    addLog('\n=== APPLICATION RUN COMPLETED ===');
     isRunning = false;
   })().catch(err => {
     addLog(`Fatal batch error: ${err.message}`);
     isRunning = false;
   });
 
-  res.json({ success: true, message: `Autopilot initiated on ${jobs.length} jobs.` });
+  res.json({ success: true, message: `Application run initiated on ${jobs.length} jobs.` });
 });
 
 // 5. Get Logs & State

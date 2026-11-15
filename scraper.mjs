@@ -4,11 +4,14 @@
  */
 
 export const TOP_TECH_COMPANIES = [
-  'stripe', 'figma', 'discord', 'cloudflare', 'datadog',
-  'coinbase', 'reddit', 'openai', 'anthropic', 'scale',
-  'airbnb', 'uber', 'doordash', 'pinterest', 'instacart',
-  'robinhood', 'square', 'dropbox', 'hubspot', 'gitlab',
-  'postman', 'notion', 'ramp', 'brex', 'plaid'
+  // AI & Frontier Tech
+  'openai', 'anthropic', 'scaleai', 'cohere', 'huggingface', 'perplexity',
+  // Fintech & Payments
+  'stripe', 'coinbase', 'robinhood', 'ramp', 'brex', 'plaid', 'affirm', 'chime', 'klaviyo', 'gusto', 'toast', 'square',
+  // Cloud, Infrastructure & DevTools
+  'cloudflare', 'datadog', 'gitlab', 'notion', 'figma', 'discord', 'postman', 'elastic', 'mongodb', 'snowflake', 'databricks', 'vercel', 'supabase', 'retool',
+  // Consumer Tech & SaaS
+  'reddit', 'pinterest', 'dropbox', 'hubspot', 'asana', 'box', 'okta', 'duolingo', 'samsara', 'instacart', 'doordash', 'uber', 'airbnb', 'roblox', 'spotify', 'canva', 'webflow', 'airtable', 'intercom'
 ];
 
 /**
@@ -24,17 +27,23 @@ export async function scrapeGreenhouse(companySlug) {
   const data = await res.json();
   if (!data.jobs) return [];
 
-  return data.jobs.map(job => ({
-    id: `gh-${job.id}`,
-    originalId: String(job.id),
-    title: job.title,
-    company: companySlug,
-    location: job.location?.name || 'Remote/Unspecified',
-    department: job.departments?.[0]?.name || 'General',
-    applyUrl: job.absolute_url,
-    ats: 'greenhouse',
-    updatedAt: job.updated_at
-  }));
+  return data.jobs.map(job => {
+    const applyUrl = job.absolute_url || '';
+    const isExternal = /myworkdayjobs|taleo|icims|successfactors|brassring/i.test(applyUrl);
+    return {
+      id: `gh-${job.id}`,
+      originalId: String(job.id),
+      title: job.title,
+      company: companySlug,
+      location: job.location?.name || 'Remote/Unspecified',
+      department: job.departments?.[0]?.name || 'General',
+      applyUrl,
+      ats: 'greenhouse',
+      quickApply: !isExternal,
+      applyType: isExternal ? 'external' : 'quick',
+      updatedAt: job.updated_at
+    };
+  });
 }
 
 /**
@@ -50,17 +59,23 @@ export async function scrapeLever(companySlug) {
   const data = await res.json();
   if (!Array.isArray(data)) return [];
 
-  return data.map(job => ({
-    id: `lv-${job.id}`,
-    originalId: job.id,
-    title: job.text,
-    company: companySlug,
-    location: job.categories?.location || 'Remote/Unspecified',
-    department: job.categories?.team || job.categories?.department || 'General',
-    applyUrl: job.applyUrl,
-    ats: 'lever',
-    createdAt: job.createdAt
-  }));
+  return data.map(job => {
+    const applyUrl = job.applyUrl || '';
+    const isExternal = /myworkdayjobs|taleo|icims|successfactors|brassring/i.test(applyUrl);
+    return {
+      id: `lv-${job.id}`,
+      originalId: job.id,
+      title: job.text,
+      company: companySlug,
+      location: job.categories?.location || 'Remote/Unspecified',
+      department: job.categories?.team || job.categories?.department || 'General',
+      applyUrl,
+      ats: 'lever',
+      quickApply: !isExternal,
+      applyType: isExternal ? 'external' : 'quick',
+      createdAt: job.createdAt
+    };
+  });
 }
 
 /**
@@ -103,54 +118,55 @@ export async function scrapeAshby(companySlug) {
     location: job.locationName || 'Remote/Unspecified',
     department: job.departmentName || 'General',
     applyUrl: `https://jobs.ashbyhq.com/${companySlug}/${job.id}/application`,
-    ats: 'ashby'
+    ats: 'ashby',
+    quickApply: true,
+    applyType: 'quick'
   }));
 }
 
 /**
- * Unified multi-company, multi-ATS scraper
+ * Unified multi-company, multi-ATS scraper with parallel concurrency pooling
  */
 export async function scrapeCompanies(companies, onLog = console.log) {
   const allJobs = [];
+  const slugs = [...new Set(companies.map(c => c.trim().toLowerCase()).filter(Boolean))];
 
-  for (const company of companies) {
-    const slug = company.trim().toLowerCase();
-    if (!slug) continue;
-    onLog(`[Scraper] Checking ${slug}...`);
+  onLog(`[Scraper] Initiating parallel scan across ${slugs.length} company boards...`);
 
-    let found = false;
-    // 1. Try Greenhouse
-    try {
-      const ghJobs = await scrapeGreenhouse(slug);
-      if (ghJobs.length > 0) {
-        onLog(`  ✓ Found ${ghJobs.length} jobs on Greenhouse for ${slug}`);
-        allJobs.push(...ghJobs);
-        found = true;
+  // Run in chunks of 8 concurrent requests for optimal speed without network saturation
+  const CHUNK_SIZE = 8;
+  for (let i = 0; i < slugs.length; i += CHUNK_SIZE) {
+    const chunk = slugs.slice(i, i + CHUNK_SIZE);
+
+    const chunkPromises = chunk.map(async slug => {
+      const companyJobs = [];
+      // 1. Try Greenhouse
+      try {
+        const gh = await scrapeGreenhouse(slug);
+        if (gh.length > 0) companyJobs.push(...gh);
+      } catch {}
+
+      // 2. Try Lever
+      try {
+        const lv = await scrapeLever(slug);
+        if (lv.length > 0) companyJobs.push(...lv);
+      } catch {}
+
+      // 3. Try Ashby
+      try {
+        const ashby = await scrapeAshby(slug);
+        if (ashby.length > 0) companyJobs.push(...ashby);
+      } catch {}
+
+      return { slug, jobs: companyJobs };
+    });
+
+    const results = await Promise.allSettled(chunkPromises);
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value.jobs.length > 0) {
+        allJobs.push(...r.value.jobs);
+        onLog(`  ✓ ${r.value.slug}: Found ${r.value.jobs.length} roles`);
       }
-    } catch {}
-
-    // 2. Try Lever
-    try {
-      const lvJobs = await scrapeLever(slug);
-      if (lvJobs.length > 0) {
-        onLog(`  ✓ Found ${lvJobs.length} jobs on Lever for ${slug}`);
-        allJobs.push(...lvJobs);
-        found = true;
-      }
-    } catch {}
-
-    // 3. Try Ashby
-    try {
-      const ashbyJobs = await scrapeAshby(slug);
-      if (ashbyJobs.length > 0) {
-        onLog(`  ✓ Found ${ashbyJobs.length} jobs on Ashby for ${slug}`);
-        allJobs.push(...ashbyJobs);
-        found = true;
-      }
-    } catch {}
-
-    if (!found) {
-      onLog(`  ℹ No open roles found for "${slug}" across Greenhouse, Lever, or Ashby.`);
     }
   }
 

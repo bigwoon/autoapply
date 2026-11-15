@@ -25,14 +25,20 @@ function buildFieldRules(profile) {
 
 /**
  * Applies to a single job application URL using Playwright
+ * Supports:
+ * - 'quick': 1-click automated headless submission
+ * - 'external': Assisted pre-fill, leaves browser open for user to complete portal
  */
-export async function applyToJob(applyUrl, profile, options = { dryRun: true, onLog: console.log }) {
+export async function applyToJob(applyUrl, profile, options = { dryRun: true, mode: 'quick', onLog: console.log }) {
   const onLog = options.onLog || console.log;
-  onLog(`\n[Auto-Apply] Launching browser for: ${applyUrl}`);
+  const isExternal = options.mode === 'external';
+  const isHeadless = !isExternal && !options.dryRun;
+
+  onLog(`\n[Auto-Apply] Launching ${isExternal ? 'Assisted Portal Browser' : (isHeadless ? 'Headless Quick-Apply Runner' : 'Preview Browser')} for: ${applyUrl}`);
   
   const rules = buildFieldRules(profile);
   const browser = await chromium.launch({
-    headless: false, // User can see the browser action
+    headless: isHeadless,
     args: ['--disable-blink-features=AutomationControlled']
   });
 
@@ -199,19 +205,24 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, on
 
     onLog(`  -> Completed form mapping.`);
 
-    // 5. Submit or Dry-Run
+    // 5. Submit or Dry-Run / External Assist
+    if (isExternal) {
+      onLog(`  [APPLY EXTERNALLY] Pre-filled profile & attached resume. Leaving browser open for you to complete.`);
+      return { success: true, mode: 'external', message: 'External portal pre-filled. Complete in browser.' };
+    }
+
     if (options.dryRun) {
       onLog(`  [DRY-RUN] Form filled successfully. Pausing 8 seconds for your review before closing...`);
       await page.waitForTimeout(8000);
       return { success: true, dryRun: true, message: 'Form filled successfully in Dry-Run mode.' };
     } else {
-      onLog(`  [AUTOPILOT SUBMIT] Finding Submit button...`);
+      onLog(`  [QUICK APPLY SUBMIT] Finding Submit button...`);
       const submitBtn = await page.$('button[type="submit"], input[type="submit"], button:has-text("Submit Application"), button:has-text("Apply Now")');
       if (submitBtn) {
         await submitBtn.scrollIntoViewIfNeeded();
         await submitBtn.click();
         await page.waitForNavigation({ timeout: 8000 }).catch(() => {});
-        onLog(`  ✓ Application successfully submitted!`);
+        onLog(`  ✓ Quick Apply successfully submitted!`);
         return { success: true, dryRun: false, message: 'Application submitted!' };
       } else {
         onLog(`  ⚠ Could not find standard submit button. Keeping open for review.`);
@@ -223,7 +234,9 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, on
     onLog(`  ✗ Error during application: ${err.message}`);
     return { success: false, error: err.message };
   } finally {
-    await browser.close();
+    if (!isExternal) {
+      await browser.close();
+    }
   }
 }
 
