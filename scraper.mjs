@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { scrapeDiceHomeFeed, scrapeZipRecruiterHomeFeed } from './session-manager.mjs';
 
 /**
  * Job Board Scrapers (Greenhouse, Lever, Ashby, Jobicy, RemoteOK, Arbeitnow, Dice)
@@ -397,12 +398,14 @@ export async function scrapeCompanies(companies, onLog = console.log) {
  * Scrapes across Indeed + Dice + global open feeds PLUS top high-volume ATS boards for massive coverage
  */
 export async function scrapeGeneralWeb(keyword = 'Software Engineer', location = 'Cypress, TX', onLog = console.log) {
-  onLog(`[General Web Scraper] Sourcing tech positions across Indeed, Dice, web feeds & 50+ ATS networks for "${keyword}"...`);
+  onLog(`[General Web Scraper] Sourcing fresh tech positions across Indeed, Dice, ZipRecruiter, web feeds & 50+ ATS networks for "${keyword}"...`);
   
-  const [atsJobs, indeedJobs, diceJobs, jobicyJobs, remoteokJobs, arbeitnowJobs] = await Promise.all([
+  const [atsJobs, indeedJobs, diceJobs, diceFeedJobs, zrFeedJobs, jobicyJobs, remoteokJobs, arbeitnowJobs] = await Promise.all([
     scrapeCompanies(TOP_TECH_COMPANIES.slice(0, 45), onLog),
     scrapeIndeed(keyword, location, onLog),
     scrapeDice(keyword, onLog),
+    scrapeDiceHomeFeed(onLog),
+    scrapeZipRecruiterHomeFeed(onLog),
     scrapeJobicy(onLog),
     scrapeRemoteOK(onLog),
     scrapeArbeitnow(onLog)
@@ -411,11 +414,22 @@ export async function scrapeGeneralWeb(keyword = 'Software Engineer', location =
   onLog(`  -> ATS Boards: Found ${atsJobs.length} roles`);
   onLog(`  -> Indeed Board: Found ${indeedJobs.length} roles`);
   onLog(`  -> Dice Board: Found ${diceJobs.length} roles`);
+  if (diceFeedJobs.length > 0) onLog(`  -> Dice Home Feed: Found ${diceFeedJobs.length} personalized roles`);
+  if (zrFeedJobs.length > 0) onLog(`  -> ZipRecruiter Home Feed: Found ${zrFeedJobs.length} personalized roles`);
   onLog(`  -> Jobicy Feed: Found ${jobicyJobs.length} roles`);
   onLog(`  -> RemoteOK Feed: Found ${remoteokJobs.length} roles`);
   onLog(`  -> Arbeitnow Feed: Found ${arbeitnowJobs.length} roles`);
 
-  const combined = [...atsJobs, ...indeedJobs, ...diceJobs, ...jobicyJobs, ...remoteokJobs, ...arbeitnowJobs];
+  const combined = [
+    ...atsJobs,
+    ...indeedJobs,
+    ...diceJobs,
+    ...diceFeedJobs,
+    ...zrFeedJobs,
+    ...jobicyJobs,
+    ...remoteokJobs,
+    ...arbeitnowJobs
+  ];
   onLog(`[General Web Scraper] Aggregated ${combined.length} total live opportunities!`);
   return combined;
 }

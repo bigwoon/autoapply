@@ -80,6 +80,43 @@
         </div>
       </div>
 
+      <!-- Connected Platforms Bar (Dice & ZipRecruiter) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h3 class="text-xs font-semibold text-white flex items-center gap-2 mb-1">
+            <i class="fa-solid fa-link text-indigo-400"></i>
+            Connected Account Feeds (Dice & ZipRecruiter):
+          </h3>
+          <p class="text-[11px] text-slate-400">
+            Log in once in the browser to stream fresh jobs directly from your personalized dashboards.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- Dice Session Pill -->
+          <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5">
+            <span class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-dice-d6 text-emerald-400"></i> Dice:
+            </span>
+            <span id="diceSessionBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Checking...</span>
+            <button onclick="connectPlatform('dice')" class="text-xs bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg transition ml-1">
+              Connect Dice
+            </button>
+          </div>
+
+          <!-- ZipRecruiter Session Pill -->
+          <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5">
+            <span class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-briefcase text-emerald-400"></i> ZipRecruiter:
+            </span>
+            <span id="zrSessionBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Checking...</span>
+            <button onclick="connectPlatform('ziprecruiter')" class="text-xs bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg transition ml-1">
+              Connect ZipRecruiter
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Scraper Controls Card -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
         <h2 class="text-base font-semibold text-white mb-4 flex items-center gap-2">
@@ -748,9 +785,56 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
       reader.readAsDataURL(file);
     }
 
+    // Connected Platform Sessions
+    async function checkSessionStatus() {
+      try {
+        const res = await fetch('/api/sessions');
+        const data = await res.json();
+        
+        const diceBadge = document.getElementById('diceSessionBadge');
+        if (data.dice?.connected) {
+          diceBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+          diceBadge.innerText = 'Connected';
+        } else {
+          diceBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+          diceBadge.innerText = 'Not Connected';
+        }
+
+        const zrBadge = document.getElementById('zrSessionBadge');
+        if (data.ziprecruiter?.connected) {
+          zrBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+          zrBadge.innerText = 'Connected';
+        } else {
+          zrBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+          zrBadge.innerText = 'Not Connected';
+        }
+      } catch {}
+    }
+
+    async function connectPlatform(platform) {
+      alert(`Opening real browser window for ${platform.toUpperCase()}...\n\nPlease log in to your account. Once your feed or dashboard loads, AutoApply will automatically capture and save your session tokens.`);
+      try {
+        await fetch('/api/sessions/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform })
+        });
+        // Poll status every 4s for 2 minutes
+        let count = 0;
+        const interval = setInterval(async () => {
+          await checkSessionStatus();
+          count++;
+          if (count > 30) clearInterval(interval);
+        }, 4000);
+      } catch (err) {
+        alert('Failed to launch login session: ' + err.message);
+      }
+    }
+
     // Initial load
     loadProfile();
     checkResumeStatus();
+    checkSessionStatus();
   </script>
 </body>
 </html>

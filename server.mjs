@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { scrapeCompanies, scrapeGeneralWeb, TOP_TECH_COMPANIES } from './scraper.mjs';
 import { applyToJob } from './auto-apply.mjs';
 import { extractTextFromPdf, parseResumeText, parseResumeSmart } from './resume-parser.mjs';
+import { getSessionStatus, launchLoginSession } from './session-manager.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,6 +86,29 @@ app.post('/api/settings', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Connected Platform Sessions (Dice, ZipRecruiter)
+app.get('/api/sessions', (req, res) => {
+  res.json(getSessionStatus());
+});
+
+app.post('/api/sessions/connect', async (req, res) => {
+  const { platform } = req.body;
+  if (!['dice', 'ziprecruiter'].includes(platform)) {
+    return res.status(400).json({ error: 'Invalid platform. Expected dice or ziprecruiter' });
+  }
+
+  // Trigger login in background so endpoint returns immediate acknowledgment
+  launchLoginSession(platform, addLog)
+    .then(result => {
+      addLog(`[Session] Finished ${platform} connection check: connected=${result.connected}`);
+    })
+    .catch(err => {
+      addLog(`[Session] Error connecting ${platform}: ${err.message}`);
+    });
+
+  res.json({ success: true, message: `Opened browser window to log in to ${platform.toUpperCase()}.` });
 });
 
 // Resume Status
