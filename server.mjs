@@ -260,6 +260,8 @@ app.post('/api/apply', async (req, res) => {
         dryRun,
         mode: jobMode,
         status: statusStr,
+        screenshot: result.screenshot || null,
+        confirmed: result.confirmed || false,
         error: result.error || null
       });
 

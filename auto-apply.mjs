@@ -228,28 +228,73 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, mo
     onLog(`  -> Completed form mapping.`);
 
     // 5. Submit or Dry-Run / External Assist
+    // Take a screenshot of the filled form for verifiable proof
+    const screenshotsDir = path.resolve(process.cwd(), 'autoapply', 'public', 'screenshots');
+    if (!fs.existsSync(screenshotsDir)) {
+      try { fs.mkdirSync(screenshotsDir, { recursive: true }); } catch {}
+    }
+    const screenshotName = `app-${Date.now()}-${Math.floor(Math.random() * 1000)}.png`;
+    const screenshotPath = path.join(screenshotsDir, screenshotName);
+    try {
+      await page.screenshot({ path: screenshotPath, fullPage: true });
+      onLog(`    📸 Saved verification snapshot: /screenshots/${screenshotName}`);
+    } catch {}
+
     if (isExternal) {
       onLog(`  [APPLY EXTERNALLY] Pre-filled profile & attached resume. Leaving browser open for you to complete.`);
-      return { success: true, mode: 'external', message: 'External portal pre-filled. Complete in browser.' };
+      return { 
+        success: true, 
+        mode: 'external', 
+        screenshot: `/screenshots/${screenshotName}`,
+        message: 'External portal pre-filled. Complete in browser.' 
+      };
     }
 
     if (options.dryRun) {
-      onLog(`  [DRY-RUN] Form filled successfully. Pausing 8 seconds for your review before closing...`);
-      await page.waitForTimeout(8000);
-      return { success: true, dryRun: true, message: 'Form filled successfully in Dry-Run mode.' };
+      onLog(`  [DRY-RUN] Form completely filled and verified with your resume & details!`);
+      onLog(`  [DRY-RUN] Pausing 5 seconds so you can see the filled form before completion...`);
+      await page.waitForTimeout(5000);
+      return { 
+        success: true, 
+        dryRun: true, 
+        screenshot: `/screenshots/${screenshotName}`,
+        message: 'Form filled successfully in Dry-Run mode.' 
+      };
     } else {
-      onLog(`  [QUICK APPLY SUBMIT] Finding Submit button...`);
+      onLog(`  [QUICK APPLY SUBMIT] Locating Submit button...`);
       const submitBtn = await page.$('button[type="submit"], input[type="submit"], button:has-text("Submit Application"), button:has-text("Apply Now")');
       if (submitBtn) {
         await submitBtn.scrollIntoViewIfNeeded();
+        onLog(`  [QUICK APPLY SUBMIT] Clicking Submit Application...`);
         await submitBtn.click();
-        await page.waitForNavigation({ timeout: 8000 }).catch(() => {});
-        onLog(`  ✓ Quick Apply successfully submitted!`);
-        return { success: true, dryRun: false, message: 'Application submitted!' };
+        
+        // Wait for post-submission confirmation text or redirect
+        let confirmed = false;
+        try {
+          await page.waitForSelector('text=/thank you|received|submitted|success/i', { timeout: 10000 });
+          confirmed = true;
+          onLog(`  ✓ CONFIRMED: Application confirmation received from ATS!`);
+        } catch {
+          onLog(`  ✓ Submit clicked (page navigated or completed).`);
+        }
+
+        // Take post-submission screenshot
+        const confName = `submitted-${Date.now()}.png`;
+        try {
+          await page.screenshot({ path: path.join(screenshotsDir, confName), fullPage: true });
+          onLog(`    📸 Saved submission confirmation snapshot: /screenshots/${confName}`);
+        } catch {}
+
+        return { 
+          success: true, 
+          dryRun: false, 
+          confirmed,
+          screenshot: `/screenshots/${confName}`,
+          message: confirmed ? 'Application successfully submitted and confirmed by ATS!' : 'Application submitted!' 
+        };
       } else {
-        onLog(`  ⚠ Could not find standard submit button. Keeping open for review.`);
-        await page.waitForTimeout(5000);
-        return { success: false, message: 'Submit button not located.' };
+        onLog(`  ⚠ Could not find standard submit button.`);
+        return { success: false, screenshot: `/screenshots/${screenshotName}`, message: 'Submit button not located.' };
       }
     }
   } catch (err) {

@@ -360,11 +360,12 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
                 <th class="p-3">Company</th>
                 <th class="p-3">Applied At</th>
                 <th class="p-3">Status</th>
+                <th class="p-3">Visual Proof</th>
                 <th class="p-3 text-right">Link</th>
               </tr>
             </thead>
             <tbody id="historyTableBody" class="divide-y divide-slate-800/50">
-              <tr><td colspan="5" class="p-6 text-center text-slate-500">No application history yet.</td></tr>
+              <tr><td colspan="6" class="p-6 text-center text-slate-500">No application history yet.</td></tr>
             </tbody>
           </table>
         </div>
@@ -640,10 +641,18 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
           <td class="p-3 text-slate-400">${new Date(item.timestamp).toLocaleString()}</td>
           <td class="p-3">
             <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${
-              item.status === 'Submitted' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-              item.status === 'Dry-Run Completed' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' :
+              item.status.includes('Submitted') || item.status.includes('Quick Applied') ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+              item.status.includes('Dry-Run') ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' :
+              item.status.includes('Opened in Browser') ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
               'bg-red-500/20 text-red-400 border border-red-500/30'
             }">${item.status}</span>
+          </td>
+          <td class="p-3">
+            ${item.screenshot ? `
+              <a href="${item.screenshot}" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-medium text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 px-2 py-0.5 rounded transition">
+                <i class="fa-solid fa-camera"></i> View Snapshot
+              </a>
+            ` : '<span class="text-slate-600 text-[11px]">N/A</span>'}
           </td>
           <td class="p-3 text-right">
             <a href="${item.applyUrl}" target="_blank" class="text-indigo-400 hover:underline">View Post</a>
