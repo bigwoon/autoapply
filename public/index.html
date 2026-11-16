@@ -633,12 +633,25 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
     async function applyJob(jobId, mode) {
       const job = allScrapedJobs.find(j => j.id === jobId);
       if (!job) return;
+      
+      if (mode === 'external') {
+        window.open(job.applyUrl, '_blank');
+      }
+
       const dryRun = document.getElementById('dryRunToggle').checked;
-      await fetch('/api/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobs: [job], dryRun, mode })
-      });
+      try {
+        const res = await fetch('/api/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobs: [job], dryRun, mode })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Could not launch application runner');
+        }
+      } catch (err) {
+        console.error('Apply error:', err);
+      }
     }
 
     async function handleBatchApply() {
