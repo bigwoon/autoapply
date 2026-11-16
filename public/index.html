@@ -212,11 +212,19 @@
               </label>
             </div>
 
-            <button onclick="handleBatchApply()" id="applyBtn" 
-              class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold px-6 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/30 text-sm flex items-center gap-2">
-              <i class="fa-solid fa-play"></i>
-              Launch Autopilot on Selected (<span id="selectedCount">0</span>)
-            </button>
+            <div class="flex items-center gap-2">
+              <button onclick="handleStopApply()" id="stopBtn" 
+                class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 font-semibold px-4 py-2.5 rounded-xl transition text-sm flex items-center gap-2">
+                <i class="fa-solid fa-stop"></i>
+                Stop Batch
+              </button>
+
+              <button onclick="handleBatchApply()" id="applyBtn" 
+                class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold px-6 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/30 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-play"></i>
+                Launch Autopilot on Selected (<span id="selectedCount">0</span>)
+              </button>
+            </div>
           </div>
         </div>
 
@@ -555,6 +563,16 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
       });
       const data = await res.json();
       if (!res.ok) alert(data.error);
+    }
+
+    async function handleStopApply() {
+      try {
+        const res = await fetch('/api/apply/stop', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || 'Stop signal sent.');
+      } catch (err) {
+        alert('Failed to stop: ' + err.message);
+      }
     }
 
     // Terminal Logging Stream Poller

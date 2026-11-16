@@ -1,16 +1,28 @@
 {
-  "firstName": "YourFirstName",
-  "lastName": "YourLastName",
-  "email": "youremail@example.com",
-  "phone": "+1 (555) 000-0000",
-  "currentLocation": "San Francisco, CA",
+  "firstName": "Sowande",
+  "lastName": "Crews",
+  "fullName": "Sowande Crews",
+  "email": "Sowandec@gmail.com",
+  "phone": "(346)-634-8819",
+  "currentLocation": "Cypress, TX",
   "resumePath": "C:\\Users\\User\\Documents\\rea-main\\rea-main\\autoapply\\stored_resume.pdf",
-  "linkedin": "https://linkedin.com/in/yourprofile",
-  "github": "https://github.com/yourhandle",
-  "portfolio": "https://yourportfolio.dev",
+  "resumeFileName": "Sowande_Crews_Resume.pdf",
+  "linkedin": "https://linkedin.com/in/sowandecrews",
+  "github": "https://github.com/bigwoon",
+  "portfolio": "",
   "salaryExpectation": "130000",
   "workAuthorization": "Yes",
   "needsSponsorship": "No",
-  "coverLetter": "I am writing to express my enthusiasm for this role. With my background in building reliable web applications and software systems, I look forward to contributing to your engineering team.",
-  "fullName": "YourFirstName YourLastName"
+  "coverLetter": "Full-stack software developer and technical co-founder specializing in scalable web and mobile applications, cloud integrations, and data-driven architectures. Experienced in engineering backend services with Node.js, PostgreSQL, and Prisma, deploying serverless microservices on AWS, and conducting research using Python and machine learning tools. Passionate about building impactful software solutions and contributing to community-driven initiatives.",
+  "skills": [
+    "JavaScript",
+    "TypeScript",
+    "Python",
+    "Java",
+    "React",
+    "Node.js",
+    "PostgreSQL",
+    "MongoDB",
+    "AWS"
+  ]
 }

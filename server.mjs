@@ -32,6 +32,7 @@ function getSettings() {
 // In-memory state for UI log streaming
 let liveLogs = [];
 let isRunning = false;
+let stopRequested = false;
 
 function addLog(msg) {
   const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -213,8 +214,8 @@ app.post('/api/apply', async (req, res) => {
     return res.status(409).json({ error: 'An application run is already in progress' });
   }
 
-  const profile = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
   isRunning = true;
+  stopRequested = false;
   addLog(`Starting application run on ${jobs.length} jobs (Dry-Run: ${dryRun}, Mode: ${mode || 'auto-detect'})...`);
 
   // Run in background so HTTP response returns immediately
@@ -222,11 +223,27 @@ app.post('/api/apply', async (req, res) => {
     const history = fs.existsSync(HISTORY_PATH) ? JSON.parse(fs.readFileSync(HISTORY_PATH, 'utf8')) : [];
 
     for (let i = 0; i < jobs.length; i++) {
+      if (stopRequested) {
+        addLog(`🛑 Application batch stopped by user request at job ${i + 1}/${jobs.length}.`);
+        break;
+      }
+
+      // Re-read profile on every iteration so edits & resume uploads are immediately reflected
+      let currentProfile = {};
+      try {
+        if (fs.existsSync(PROFILE_PATH)) {
+          currentProfile = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
+        }
+      } catch (err) {
+        addLog(`Warning: Failed to read profile: ${err.message}`);
+      }
+
       const job = jobs[i];
       const jobMode = mode || (job.quickApply ? 'quick' : 'external');
       addLog(`\n[${i + 1}/${jobs.length}] [${jobMode === 'quick' ? '⚡ QUICK APPLY' : '↗ APPLY EXTERNALLY'}] ${job.title} at ${job.company}`);
+      addLog(`  -> Applying as: ${currentProfile.fullName || currentProfile.firstName || 'Candidate'} (${currentProfile.email || 'No Email'})`);
       
-      const result = await applyToJob(job.applyUrl, profile, { dryRun, mode: jobMode, onLog: addLog });
+      const result = await applyToJob(job.applyUrl, currentProfile, { dryRun, mode: jobMode, onLog: addLog });
       
       let statusStr = 'Failed';
       if (result.success) {
@@ -251,18 +268,33 @@ app.post('/api/apply', async (req, res) => {
       // 4-second breather between applications
       if (i < jobs.length - 1 && jobMode !== 'external') {
         addLog('Pausing 4s before next application...');
-        await new Promise(r => setTimeout(r, 4000));
+        for (let s = 0; s < 4; s++) {
+          if (stopRequested) break;
+          await new Promise(r => setTimeout(r, 1000));
+        }
       }
     }
 
     addLog('\n=== APPLICATION RUN COMPLETED ===');
     isRunning = false;
+    stopRequested = false;
   })().catch(err => {
     addLog(`Fatal batch error: ${err.message}`);
     isRunning = false;
+    stopRequested = false;
   });
 
   res.json({ success: true, message: `Application run initiated on ${jobs.length} jobs.` });
+});
+
+// Stop Running Application Batch
+app.post('/api/apply/stop', (req, res) => {
+  if (!isRunning) {
+    return res.json({ success: true, message: 'No run currently active.' });
+  }
+  stopRequested = true;
+  addLog('User requested STOP of the active application batch.');
+  res.json({ success: true, message: 'Stop signal sent.' });
 });
 
 // 5. Get Logs & State
