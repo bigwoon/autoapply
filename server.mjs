@@ -174,8 +174,8 @@ app.post('/api/scrape', async (req, res) => {
       addLog(`Starting custom job scrape across ${companies.length} specific companies ${positionLabel}`);
       rawJobs = await scrapeCompanies(companies, addLog);
     } else {
-      addLog(`Starting high-volume general job scrape across global feeds & verified tech networks ${positionLabel}`);
-      rawJobs = await scrapeGeneralWeb(addLog);
+      addLog(`Starting high-volume general job scrape across Dice, global feeds & verified tech networks ${positionLabel}`);
+      rawJobs = await scrapeGeneralWeb(position || 'Software Engineer', addLog);
     }
 
     let matchedJobs = rawJobs;

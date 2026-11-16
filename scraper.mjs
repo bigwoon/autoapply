@@ -1,6 +1,8 @@
+import { chromium } from 'playwright';
+
 /**
- * Job Board Scrapers (Greenhouse, Lever, Ashby, Jobicy, RemoteOK, Arbeitnow)
- * Sources from direct ATS APIs + general global open job feeds.
+ * Job Board Scrapers (Greenhouse, Lever, Ashby, Jobicy, RemoteOK, Arbeitnow, Dice)
+ * Sources from direct ATS APIs + general global open job feeds + Dice tech board.
  */
 
 export const TOP_TECH_COMPANIES = [
@@ -210,6 +212,80 @@ export async function scrapeArbeitnow(onLog = console.log) {
 }
 
 /**
+ * Major Tech Board 4: Dice (Live Software & Tech Postings)
+ */
+export async function scrapeDice(keyword = 'Software Engineer', onLog = console.log) {
+  try {
+    onLog(`[Dice Scraper] Querying live Dice postings for "${keyword}"...`);
+    const browser = await chromium.launch({ 
+      headless: true,
+      args: ['--disable-blink-features=AutomationControlled', '--no-sandbox']
+    });
+    const page = await browser.newPage({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
+    });
+    
+    const searchUrl = `https://www.dice.com/jobs?q=${encodeURIComponent(keyword)}&countryCode=US`;
+    await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+    await page.waitForTimeout(2500);
+
+    const jobs = await page.evaluate(() => {
+      const results = [];
+      const seenUrls = new Set();
+      const titleLinks = Array.from(document.querySelectorAll('a'))
+        .filter(a => a.href.includes('/job-detail/') && a.innerText.trim().length > 3);
+
+      for (const a of titleLinks) {
+        if (seenUrls.has(a.href)) continue;
+        seenUrls.add(a.href);
+
+        const title = a.innerText.trim();
+        const card = a.closest('[data-testid="job-search-result-card"]') || a.closest('div.relative') || a.parentElement?.parentElement;
+        
+        let company = 'Company on Dice';
+        let location = 'United States';
+        let quickApply = false;
+
+        if (card) {
+          const text = card.innerText;
+          quickApply = /easy apply/i.test(text);
+
+          const compLink = card.querySelector('a[href*="/company-profile/"], [data-cy*="company"]');
+          if (compLink && compLink.innerText.trim()) {
+            company = compLink.innerText.trim();
+          }
+
+          const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+          const locLine = lines.find(l => l.includes(',') && !l.includes('$') && (l.includes('Remote') || l.includes('Today') || l.includes('ago') || /[A-Z]{2}/.test(l)));
+          if (locLine) location = locLine.replace(/•.*$/, '').trim();
+        }
+
+        results.push({
+          id: `dice-${a.href.split('/job-detail/')[1]?.split('?')[0] || Math.random().toString(36).substring(2, 8)}`,
+          title,
+          company,
+          location,
+          department: 'Engineering',
+          applyUrl: a.href,
+          quickApply,
+          applyType: quickApply ? 'quick' : 'external',
+          source: 'Dice Tech Board',
+          ats: 'dice'
+        });
+      }
+      return results;
+    });
+
+    await browser.close();
+    onLog(`[Dice Scraper] Found ${jobs.length} roles from Dice!`);
+    return jobs;
+  } catch (err) {
+    onLog(`[Dice Scraper] Skipped: ${err.message}`);
+    return [];
+  }
+}
+
+/**
  * Unified multi-company, multi-ATS and global web scraper
  */
 export async function scrapeCompanies(companies, onLog = console.log) {
@@ -257,24 +333,26 @@ export async function scrapeCompanies(companies, onLog = console.log) {
 
 /**
  * General Web + Global Scraper:
- * Scrapes across global open feeds PLUS top high-volume ATS boards for massive coverage (thousands of jobs)
+ * Scrapes across Dice + global open feeds PLUS top high-volume ATS boards for massive coverage
  */
-export async function scrapeGeneralWeb(onLog = console.log) {
-  onLog(`[General Web Scraper] Sourcing general tech positions across web feeds & 50+ ATS networks...`);
+export async function scrapeGeneralWeb(keyword = 'Software Engineer', onLog = console.log) {
+  onLog(`[General Web Scraper] Sourcing tech positions across Dice, web feeds & 50+ ATS networks for "${keyword}"...`);
   
-  const [atsJobs, jobicyJobs, remoteokJobs, arbeitnowJobs] = await Promise.all([
+  const [atsJobs, diceJobs, jobicyJobs, remoteokJobs, arbeitnowJobs] = await Promise.all([
     scrapeCompanies(TOP_TECH_COMPANIES.slice(0, 45), onLog),
+    scrapeDice(keyword, onLog),
     scrapeJobicy(onLog),
     scrapeRemoteOK(onLog),
     scrapeArbeitnow(onLog)
   ]);
 
   onLog(`  -> ATS Boards: Found ${atsJobs.length} roles`);
+  onLog(`  -> Dice Board: Found ${diceJobs.length} roles`);
   onLog(`  -> Jobicy Feed: Found ${jobicyJobs.length} roles`);
   onLog(`  -> RemoteOK Feed: Found ${remoteokJobs.length} roles`);
   onLog(`  -> Arbeitnow Feed: Found ${arbeitnowJobs.length} roles`);
 
-  const combined = [...atsJobs, ...jobicyJobs, ...remoteokJobs, ...arbeitnowJobs];
+  const combined = [...atsJobs, ...diceJobs, ...jobicyJobs, ...remoteokJobs, ...arbeitnowJobs];
   onLog(`[General Web Scraper] Aggregated ${combined.length} total live opportunities!`);
   return combined;
 }
