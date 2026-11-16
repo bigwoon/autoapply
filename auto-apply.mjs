@@ -101,10 +101,14 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, mo
         }, input);
 
         const descriptor = `${id} ${name} ${placeholder} ${ariaLabel} ${labelText}`.toLowerCase();
+        const type = (await input.getAttribute('type')) || (await input.evaluate(el => el.tagName.toLowerCase())) || 'text';
+        const isRequired = (await input.getAttribute('required')) !== null || (await input.getAttribute('aria-required')) === 'true' || descriptor.includes('*');
+
+        let filled = false;
+        let currentVal = await input.inputValue();
 
         for (const rule of rules) {
           if (rule.value && rule.match.test(descriptor)) {
-            const currentVal = await input.inputValue();
             if (!currentVal) {
               await input.scrollIntoViewIfNeeded();
               await input.click();
@@ -115,7 +119,9 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, mo
                 el.dispatchEvent(new Event('change', { bubbles: true }));
               }, input);
               onLog(`    ✓ Filled [${name || id || placeholder || 'field'}]: "${rule.value}"`);
+              currentVal = rule.value;
             }
+            filled = true;
             break;
           }
         }
