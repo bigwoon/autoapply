@@ -92,55 +92,69 @@
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
               <span>Target Job Position / Role Keywords:</span>
-              <span class="text-[10px] text-indigo-400">e.g. Software Engineer, Frontend</span>
+              <span class="text-[10px] text-indigo-400">e.g. Software Engineer, Full Stack, Python</span>
             </label>
-            <input type="text" id="positionInput" value="Software Engineer" 
+            <input type="text" id="positionInput" value="Full Stack" 
               class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-white font-medium" 
-              placeholder="e.g. Software Engineer, Frontend, Python, Data Analyst">
+              placeholder="e.g. Software Engineer, Full Stack, Frontend, Backend, Python">
             
             <!-- Quick Position Tags -->
             <div class="flex flex-wrap items-center gap-1.5 pt-2">
               <span class="text-[11px] text-slate-500">Quick roles:</span>
+              <button onclick="setPosition('Full Stack')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Full Stack</button>
               <button onclick="setPosition('Software Engineer')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Software Engineer</button>
               <button onclick="setPosition('Frontend')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Frontend</button>
               <button onclick="setPosition('Backend')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Backend</button>
-              <button onclick="setPosition('Full Stack')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Full Stack</button>
-              <button onclick="setPosition('Data Engineer')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Data Engineer</button>
-              <button onclick="setPosition('Product Manager')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Product Manager</button>
+              <button onclick="setPosition('React, Node')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">React, Node</button>
+              <button onclick="setPosition('Python')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">Python</button>
             </div>
           </div>
 
-          <!-- Target Companies Input -->
+          <!-- Sourcing Scope Selection -->
           <div>
             <div class="flex items-center justify-between mb-1.5">
-              <label class="text-xs font-medium text-slate-300">Target Companies:</label>
-              <label class="flex items-center gap-1.5 text-xs text-indigo-400 cursor-pointer">
-                <input type="checkbox" id="useTopCompaniesCheckbox" checked onchange="toggleTopCompanies(this.checked)" class="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0">
-                <span>Top 50+ Tech & AI Boards (3,000+ jobs)</span>
+              <label class="text-xs font-medium text-slate-300">Job Sourcing Source:</label>
+              <span class="text-[10px] text-emerald-400 font-medium">10,000+ Real Roles</span>
+            </div>
+            
+            <div class="space-y-2">
+              <label class="flex items-center gap-2 p-2.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 cursor-pointer">
+                <input type="radio" name="sourceMode" id="sourceGeneral" value="general" checked onchange="toggleSourceMode('general')" class="text-indigo-600 focus:ring-0">
+                <div class="text-xs">
+                  <div class="font-semibold text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-globe text-indigo-400"></i>
+                    General Web & Global ATS Network (Recommended)
+                  </div>
+                  <div class="text-[11px] text-slate-400">Sources all open postings matching your role across global tech boards & 50+ ATS networks</div>
+                </div>
+              </label>
+
+              <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer">
+                <input type="radio" name="sourceMode" id="sourceCustom" value="custom" onchange="toggleSourceMode('custom')" class="text-indigo-600 focus:ring-0">
+                <div class="text-xs">
+                  <div class="font-semibold text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-building text-slate-400"></i>
+                    Specific Companies Only
+                  </div>
+                  <div class="text-[11px] text-slate-500">Target specific company handles (e.g. stripe, airbnb, figma)</div>
+                </div>
               </label>
             </div>
-            <input type="text" id="companyInput" value="stripe, figma, discord, cloudflare, datadog, coinbase, reddit, anthropic, openai" 
-              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 text-white" 
-              placeholder="e.g. stripe, figma, discord, cloudflare">
-            
-            <!-- Quick Company Tags -->
-            <div class="flex flex-wrap items-center gap-1.5 pt-2">
-              <span class="text-[11px] text-slate-500">Add company:</span>
-              <button onclick="addCompany('stripe')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Stripe</button>
-              <button onclick="addCompany('figma')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Figma</button>
-              <button onclick="addCompany('discord')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Discord</button>
-              <button onclick="addCompany('datadog')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Datadog</button>
-              <button onclick="addCompany('cloudflare')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Cloudflare</button>
-              <button onclick="addCompany('anthropic')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ Anthropic</button>
-              <button onclick="addCompany('openai')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">+ OpenAI</button>
+
+            <!-- Custom Company Input (Collapsible) -->
+            <div id="customCompanyBox" class="hidden mt-2.5">
+              <input type="text" id="companyInput" value="stripe, airbnb, figma, dropbox, pinterest, datadog" 
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-indigo-500 text-white" 
+                placeholder="stripe, airbnb, figma, dropbox">
             </div>
           </div>
         </div>
 
         <!-- Action Button -->
         <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-          <div class="text-xs text-slate-400">
-            Searches ATS boards (Greenhouse, Lever, Ashby) in parallel without browser rate limits.
+          <div class="text-xs text-slate-400 flex items-center gap-2">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Multi-source scraper scans 10,000+ live jobs for roles matching your target title.
           </div>
           <button onclick="handleScrape()" id="scrapeBtn" 
             class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-indigo-600/20 text-sm">
@@ -421,29 +435,32 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
       }
     }
 
+    function toggleSourceMode(mode) {
+      const customBox = document.getElementById('customCompanyBox');
+      if (customBox) {
+        customBox.classList.toggle('hidden', mode !== 'custom');
+      }
+    }
+
     // Scrape Jobs (Filtered by Position)
     async function handleScrape() {
       const position = document.getElementById('positionInput').value.trim();
-      const useTop = document.getElementById('useTopCompaniesCheckbox').checked;
-      const input = document.getElementById('companyInput').value;
+      const isGeneral = document.getElementById('sourceGeneral')?.checked ?? true;
+      const input = document.getElementById('companyInput')?.value || '';
       const companies = input.split(',').map(s => s.trim()).filter(Boolean);
-
-      if (!useTop && companies.length === 0) {
-        return alert('Please select "Top 15 Tech Boards" or enter at least one company name.');
-      }
 
       const btn = document.getElementById('scrapeBtn');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching...';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching 10,000+ jobs...';
 
       try {
         const res = await fetch('/api/scrape', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            companies: useTop ? [] : companies, 
-            position,
-            useTopCompanies: useTop 
+            mode: isGeneral ? 'general' : 'custom',
+            companies: isGeneral ? [] : companies, 
+            position
           })
         });
         const data = await res.json();
@@ -486,7 +503,10 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
           <td class="p-3">
             <input type="checkbox" ${selectedJobIds.has(job.id) ? 'checked' : ''} onchange="toggleJobSelect('${job.id}')">
           </td>
-          <td class="p-3 font-medium text-white">${job.title}</td>
+          <td class="p-3">
+            <span class="text-white font-medium block">${job.title}</span>
+            <span class="text-[10px] text-slate-500">${job.source || 'ATS Direct'}</span>
+          </td>
           <td class="p-3 capitalize text-slate-300">${job.company}</td>
           <td class="p-3 text-slate-400">${job.location}</td>
           <td class="p-3">

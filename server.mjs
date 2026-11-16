@@ -3,7 +3,7 @@ import cors from 'cors';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scrapeCompanies, TOP_TECH_COMPANIES } from './scraper.mjs';
+import { scrapeCompanies, scrapeGeneralWeb, TOP_TECH_COMPANIES } from './scraper.mjs';
 import { applyToJob } from './auto-apply.mjs';
 import { extractTextFromPdf, parseResumeText, parseResumeSmart } from './resume-parser.mjs';
 
@@ -161,33 +161,41 @@ app.get('/api/companies', (req, res) => {
   res.json({ topCompanies: TOP_TECH_COMPANIES });
 });
 
-// 4. Scrape Jobs (Supports Position & Role Filter)
+// 4. Scrape Jobs (Supports Position & Role Filter + General Web Sourcing)
 app.post('/api/scrape', async (req, res) => {
-  let { companies, position, useTopCompanies = false } = req.body;
+  let { companies, position, useTopCompanies = false, mode = 'general' } = req.body;
   
-  if (useTopCompanies || (!companies && !Array.isArray(companies))) {
-    companies = TOP_TECH_COMPANIES.slice(0, 15);
-  } else if (!Array.isArray(companies) || companies.length === 0) {
-    return res.status(400).json({ error: 'Expected array of company slugs or useTopCompanies=true' });
-  }
-
   const positionLabel = position && position.trim() ? `for position: "${position.trim()}"` : '(all positions)';
-  addLog(`Starting job scrape across ${companies.length} companies ${positionLabel}`);
-  
+
   try {
-    const rawJobs = await scrapeCompanies(companies, addLog);
+    let rawJobs = [];
+
+    if (mode === 'custom' && Array.isArray(companies) && companies.length > 0) {
+      addLog(`Starting custom job scrape across ${companies.length} specific companies ${positionLabel}`);
+      rawJobs = await scrapeCompanies(companies, addLog);
+    } else {
+      addLog(`Starting high-volume general job scrape across global feeds & verified tech networks ${positionLabel}`);
+      rawJobs = await scrapeGeneralWeb(addLog);
+    }
+
     let matchedJobs = rawJobs;
 
     if (position && position.trim()) {
+      // Split on commas or words (e.g. "Full Stack", "Software Engineer")
       const keywords = position.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
       matchedJobs = rawJobs.filter(job => {
-        const title = (job.title || '').toLowerCase();
-        const dept = (job.department || '').toLowerCase();
-        return keywords.some(kw => title.includes(kw) || dept.includes(kw));
+        const title = String(job.title || '').toLowerCase();
+        const dept = String(job.department || '').toLowerCase();
+        return keywords.some(kw => {
+          // Check substring or token matching
+          if (title.includes(kw) || dept.includes(kw)) return true;
+          const words = kw.split(/\s+/);
+          return words.every(w => title.includes(w) || dept.includes(w));
+        });
       });
-      addLog(`Filtered from ${rawJobs.length} total roles down to ${matchedJobs.length} matching "${position}"!`);
+      addLog(`✓ Filtered from ${rawJobs.length} total roles down to ${matchedJobs.length} matching "${position}"!`);
     } else {
-      addLog(`Scraping finished. Total jobs found: ${rawJobs.length}`);
+      addLog(`Scraping finished. Total general roles found: ${rawJobs.length}`);
     }
 
     res.json({ 
