@@ -174,8 +174,17 @@ app.post('/api/scrape', async (req, res) => {
       addLog(`Starting custom job scrape across ${companies.length} specific companies ${positionLabel}`);
       rawJobs = await scrapeCompanies(companies, addLog);
     } else {
-      addLog(`Starting high-volume general job scrape across Dice, global feeds & verified tech networks ${positionLabel}`);
-      rawJobs = await scrapeGeneralWeb(position || 'Software Engineer', addLog);
+      addLog(`Starting high-volume general job scrape across Indeed, Dice, global feeds & verified tech networks ${positionLabel}`);
+      
+      let loc = 'Cypress, TX';
+      try {
+        if (fs.existsSync(PROFILE_PATH)) {
+          const prof = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
+          if (prof.currentLocation) loc = prof.currentLocation;
+        }
+      } catch {}
+
+      rawJobs = await scrapeGeneralWeb(position || 'Software Engineer', loc, addLog);
     }
 
     let matchedJobs = rawJobs;

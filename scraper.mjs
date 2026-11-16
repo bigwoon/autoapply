@@ -286,6 +286,67 @@ export async function scrapeDice(keyword = 'Software Engineer', onLog = console.
 }
 
 /**
+ * Major Tech Board 5: Indeed (Live Postings for Position + Location)
+ */
+export async function scrapeIndeed(keyword = 'Full Stack Developer', location = 'Cypress, TX', onLog = console.log) {
+  try {
+    onLog(`[Indeed Scraper] Querying live Indeed roles for "${keyword}" around "${location}" (Remote included)...`);
+    const browser = await chromium.launch({ 
+      headless: true,
+      args: ['--disable-blink-features=AutomationControlled', '--no-sandbox']
+    });
+    const page = await browser.newPage({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
+    });
+    
+    const searchUrl = `https://www.indeed.com/jobs?q=${encodeURIComponent(keyword)}&l=${encodeURIComponent(location)}&remotejob=1`;
+    await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+    await page.waitForTimeout(2500);
+
+    const jobs = await page.evaluate(() => {
+      const list = [];
+      const links = Array.from(document.querySelectorAll('a[data-jk], a[id^="job_"], h2.jobTitle a'));
+      const seen = new Set();
+
+      for (const a of links) {
+        const jk = a.getAttribute('data-jk') || a.id?.replace('job_', '') || a.href?.match(/jk=([a-zA-Z0-9]+)/)?.[1];
+        if (!jk || seen.has(jk)) continue;
+        seen.add(jk);
+
+        const title = a.innerText.trim();
+        if (!title) continue;
+
+        const card = a.closest('.job_seen_beacon') || a.closest('div.result') || a.parentElement?.parentElement;
+        const compEl = card?.querySelector('[data-testid="company-name"], .companyName');
+        const locEl = card?.querySelector('[data-testid="text-location"], .companyLocation');
+        const isEasyApply = !!card?.querySelector('[data-testid="indeedApply"], .iaIcon');
+
+        list.push({
+          id: `indeed-${jk}`,
+          title,
+          company: compEl ? compEl.innerText.trim() : 'Company on Indeed',
+          location: locEl ? locEl.innerText.trim() : 'Remote / Cypress, TX',
+          department: 'Engineering',
+          applyUrl: `https://www.indeed.com/viewjob?jk=${jk}`,
+          quickApply: isEasyApply,
+          applyType: isEasyApply ? 'quick' : 'external',
+          source: 'Indeed Job Board',
+          ats: 'indeed'
+        });
+      }
+      return list;
+    });
+
+    await browser.close();
+    onLog(`[Indeed Scraper] Found ${jobs.length} roles from Indeed!`);
+    return jobs;
+  } catch (err) {
+    onLog(`[Indeed Scraper] Skipped: ${err.message}`);
+    return [];
+  }
+}
+
+/**
  * Unified multi-company, multi-ATS and global web scraper
  */
 export async function scrapeCompanies(companies, onLog = console.log) {
@@ -333,13 +394,14 @@ export async function scrapeCompanies(companies, onLog = console.log) {
 
 /**
  * General Web + Global Scraper:
- * Scrapes across Dice + global open feeds PLUS top high-volume ATS boards for massive coverage
+ * Scrapes across Indeed + Dice + global open feeds PLUS top high-volume ATS boards for massive coverage
  */
-export async function scrapeGeneralWeb(keyword = 'Software Engineer', onLog = console.log) {
-  onLog(`[General Web Scraper] Sourcing tech positions across Dice, web feeds & 50+ ATS networks for "${keyword}"...`);
+export async function scrapeGeneralWeb(keyword = 'Software Engineer', location = 'Cypress, TX', onLog = console.log) {
+  onLog(`[General Web Scraper] Sourcing tech positions across Indeed, Dice, web feeds & 50+ ATS networks for "${keyword}"...`);
   
-  const [atsJobs, diceJobs, jobicyJobs, remoteokJobs, arbeitnowJobs] = await Promise.all([
+  const [atsJobs, indeedJobs, diceJobs, jobicyJobs, remoteokJobs, arbeitnowJobs] = await Promise.all([
     scrapeCompanies(TOP_TECH_COMPANIES.slice(0, 45), onLog),
+    scrapeIndeed(keyword, location, onLog),
     scrapeDice(keyword, onLog),
     scrapeJobicy(onLog),
     scrapeRemoteOK(onLog),
@@ -347,12 +409,13 @@ export async function scrapeGeneralWeb(keyword = 'Software Engineer', onLog = co
   ]);
 
   onLog(`  -> ATS Boards: Found ${atsJobs.length} roles`);
+  onLog(`  -> Indeed Board: Found ${indeedJobs.length} roles`);
   onLog(`  -> Dice Board: Found ${diceJobs.length} roles`);
   onLog(`  -> Jobicy Feed: Found ${jobicyJobs.length} roles`);
   onLog(`  -> RemoteOK Feed: Found ${remoteokJobs.length} roles`);
   onLog(`  -> Arbeitnow Feed: Found ${arbeitnowJobs.length} roles`);
 
-  const combined = [...atsJobs, ...diceJobs, ...jobicyJobs, ...remoteokJobs, ...arbeitnowJobs];
+  const combined = [...atsJobs, ...indeedJobs, ...diceJobs, ...jobicyJobs, ...remoteokJobs, ...arbeitnowJobs];
   onLog(`[General Web Scraper] Aggregated ${combined.length} total live opportunities!`);
   return combined;
 }
