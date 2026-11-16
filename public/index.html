@@ -527,38 +527,49 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
     }
 
     function renderJobsTable() {
-      const filter = document.getElementById('roleFilter').value.toLowerCase();
+      const filter = (document.getElementById('roleFilter')?.value || '').toLowerCase();
       const quickOnly = document.getElementById('quickApplyOnlyToggle')?.checked;
       const tbody = document.getElementById('jobsTableBody');
       const filtered = allScrapedJobs.filter(j => {
-        const matchesText = j.title.toLowerCase().includes(filter) || 
-                            j.company.toLowerCase().includes(filter) ||
-                            j.location.toLowerCase().includes(filter);
+        const titleStr = String(j.title || '').toLowerCase();
+        const compStr = String(j.company || '').toLowerCase();
+        const locStr = String(j.location || '').toLowerCase();
+
+        const matchesText = !filter || titleStr.includes(filter) || compStr.includes(filter) || locStr.includes(filter);
         if (!matchesText) return false;
         if (quickOnly && !j.quickApply) return false;
         return true;
       });
 
-      document.getElementById('jobCountBadge').innerText = `${filtered.length} jobs`;
+      const countBadge = document.getElementById('jobCountBadge');
+      if (countBadge) countBadge.innerText = `${filtered.length} jobs`;
 
       if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500">No jobs match your filter.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = filtered.map(job => `
+      tbody.innerHTML = filtered.map(job => {
+        const title = escapeHtml(job.title || 'Untitled Role');
+        const company = escapeHtml(job.company || 'Unknown Company');
+        const location = escapeHtml(job.location || 'Remote/Unspecified');
+        const source = escapeHtml(job.source || 'ATS Direct');
+        const isQuick = !!job.quickApply;
+        const jobId = String(job.id);
+
+        return `
         <tr class="hover:bg-slate-800/40 transition">
           <td class="p-3">
-            <input type="checkbox" ${selectedJobIds.has(job.id) ? 'checked' : ''} onchange="toggleJobSelect('${job.id}')">
+            <input type="checkbox" ${selectedJobIds.has(jobId) ? 'checked' : ''} onchange="toggleJobSelect('${jobId}')">
           </td>
           <td class="p-3">
-            <span class="text-white font-medium block">${job.title}</span>
-            <span class="text-[10px] text-slate-500">${job.source || 'ATS Direct'}</span>
+            <span class="text-white font-medium block">${title}</span>
+            <span class="text-[10px] text-slate-500">${source}</span>
           </td>
-          <td class="p-3 capitalize text-slate-300">${job.company}</td>
-          <td class="p-3 text-slate-400">${job.location}</td>
+          <td class="p-3 capitalize text-slate-300">${company}</td>
+          <td class="p-3 text-slate-400">${location}</td>
           <td class="p-3">
-            ${job.quickApply ? `
+            ${isQuick ? `
               <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 flex items-center gap-1 w-fit">
                 <i class="fa-solid fa-bolt text-yellow-300"></i> Quick Apply
               </span>
@@ -569,20 +580,30 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
             `}
           </td>
           <td class="p-3 text-right">
-            ${job.quickApply ? `
-              <button onclick="applyJob('${job.id}', 'quick')" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold px-3 py-1 rounded-lg text-xs shadow shadow-purple-600/30 flex items-center gap-1.5 ml-auto">
+            ${isQuick ? `
+              <button onclick="applyJob('${jobId}', 'quick')" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold px-3 py-1 rounded-lg text-xs shadow shadow-purple-600/30 flex items-center gap-1.5 ml-auto">
                 <i class="fa-solid fa-bolt text-yellow-300"></i> Quick Apply
               </button>
             ` : `
-              <button onclick="applyJob('${job.id}', 'external')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium px-2.5 py-1 rounded-lg text-xs flex items-center gap-1.5 ml-auto">
+              <button onclick="applyJob('${jobId}', 'external')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium px-2.5 py-1 rounded-lg text-xs flex items-center gap-1.5 ml-auto">
                 <i class="fa-solid fa-arrow-up-right-from-square text-indigo-400"></i> Apply Externally
               </button>
             `}
           </td>
         </tr>
-      `).join('');
+      `}).join('');
 
       updateSelectedCount();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
 
     function toggleJobSelect(id) {
