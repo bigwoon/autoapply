@@ -2,5 +2,10 @@ node_modules/
 .env
 history.json
 resume.pdf
+stored_resume.pdf
+profile.json
+settings.json
+public/screenshots/
 .DS_Store
+
 

@@ -1,6 +1,10 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Builds field matching regex rules based on the user's profile
@@ -121,10 +125,11 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, mo
     // 2. Resume / File Uploads
     const candidatePaths = [
       profile.resumePath,
+      path.resolve(__dirname, 'stored_resume.pdf'),
       path.resolve(process.cwd(), 'stored_resume.pdf'),
       path.resolve(process.cwd(), 'autoapply', 'stored_resume.pdf'),
-      path.resolve(process.cwd(), 'resume.pdf'),
-      path.resolve(process.cwd(), 'autoapply', 'resume.pdf')
+      path.resolve(__dirname, 'resume.pdf'),
+      path.resolve(process.cwd(), 'resume.pdf')
     ].filter(Boolean);
 
     const resumePath = candidatePaths.find(p => fs.existsSync(p));
@@ -229,7 +234,7 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, mo
 
     // 5. Submit or Dry-Run / External Assist
     // Take a screenshot of the filled form for verifiable proof
-    const screenshotsDir = path.resolve(process.cwd(), 'autoapply', 'public', 'screenshots');
+    const screenshotsDir = path.resolve(__dirname, 'public', 'screenshots');
     if (!fs.existsSync(screenshotsDir)) {
       try { fs.mkdirSync(screenshotsDir, { recursive: true }); } catch {}
     }
