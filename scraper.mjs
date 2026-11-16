@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
-import { scrapeDiceHomeFeed, scrapeZipRecruiterHomeFeed } from './session-manager.mjs';
+import { scrapeDiceHomeFeed, scrapeZipRecruiterHomeFeed, SESSION_FILES } from './session-manager.mjs';
+import fs from 'node:fs';
 
 /**
  * Job Board Scrapers (Greenhouse, Lever, Ashby, Jobicy, RemoteOK, Arbeitnow, Dice)
@@ -291,14 +292,24 @@ export async function scrapeDice(keyword = 'Software Engineer', onLog = console.
  */
 export async function scrapeIndeed(keyword = 'Full Stack Developer', location = 'Cypress, TX', onLog = console.log) {
   try {
-    onLog(`[Indeed Scraper] Querying live Indeed roles for "${keyword}" around "${location}" (Remote included)...`);
+    const hasSession = fs.existsSync(SESSION_FILES.indeed);
+    onLog(`[Indeed Scraper] Querying live Indeed roles for "${keyword}" around "${location}" (Auth session: ${hasSession ? 'Active' : 'Guest'})...`);
     const browser = await chromium.launch({ 
       headless: true,
       args: ['--disable-blink-features=AutomationControlled', '--no-sandbox']
     });
-    const page = await browser.newPage({
+
+    const contextOptions = {
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
-    });
+    };
+    if (hasSession) {
+      try {
+        contextOptions.storageState = SESSION_FILES.indeed;
+      } catch {}
+    }
+
+    const context = await browser.newContext(contextOptions);
+    const page = await context.newPage();
     
     const searchUrl = `https://www.indeed.com/jobs?q=${encodeURIComponent(keyword)}&l=${encodeURIComponent(location)}&remotejob=1`;
     await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});

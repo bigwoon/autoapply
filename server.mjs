@@ -88,15 +88,15 @@ app.post('/api/settings', (req, res) => {
   }
 });
 
-// Connected Platform Sessions (Dice, ZipRecruiter)
+// Connected Platform Sessions (Dice, ZipRecruiter, Indeed)
 app.get('/api/sessions', (req, res) => {
   res.json(getSessionStatus());
 });
 
 app.post('/api/sessions/connect', async (req, res) => {
   const { platform } = req.body;
-  if (!['dice', 'ziprecruiter'].includes(platform)) {
-    return res.status(400).json({ error: 'Invalid platform. Expected dice or ziprecruiter' });
+  if (!['dice', 'ziprecruiter', 'indeed'].includes(platform)) {
+    return res.status(400).json({ error: 'Invalid platform. Expected dice, ziprecruiter, or indeed' });
   }
 
   // Trigger login in background so endpoint returns immediate acknowledgment

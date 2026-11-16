@@ -13,7 +13,8 @@ if (!fs.existsSync(SESSIONS_DIR)) {
 
 export const SESSION_FILES = {
   dice: path.join(SESSIONS_DIR, 'dice-session.json'),
-  ziprecruiter: path.join(SESSIONS_DIR, 'ziprecruiter-session.json')
+  ziprecruiter: path.join(SESSIONS_DIR, 'ziprecruiter-session.json'),
+  indeed: path.join(SESSIONS_DIR, 'indeed-session.json')
 };
 
 /**
@@ -28,6 +29,10 @@ export function getSessionStatus() {
     ziprecruiter: {
       connected: fs.existsSync(SESSION_FILES.ziprecruiter),
       updatedAt: fs.existsSync(SESSION_FILES.ziprecruiter) ? fs.statSync(SESSION_FILES.ziprecruiter).mtime.toISOString() : null
+    },
+    indeed: {
+      connected: fs.existsSync(SESSION_FILES.indeed),
+      updatedAt: fs.existsSync(SESSION_FILES.indeed) ? fs.statSync(SESSION_FILES.indeed).mtime.toISOString() : null
     }
   };
 }
@@ -37,9 +42,12 @@ export function getSessionStatus() {
  * Once logged in, the storageState (cookies, localStorage, session tokens) is persisted.
  */
 export async function launchLoginSession(platform = 'dice', onLog = console.log) {
-  const url = platform === 'dice' 
-    ? 'https://www.dice.com/dashboard/login?redirectUrl=%2Fhome-feed' 
-    : 'https://www.ziprecruiter.com/jobseeker/home';
+  let url = 'https://www.dice.com/dashboard/login?redirectUrl=%2Fhome-feed';
+  if (platform === 'ziprecruiter') {
+    url = 'https://www.ziprecruiter.com/jobseeker/home';
+  } else if (platform === 'indeed') {
+    url = 'https://secure.indeed.com/account/login';
+  }
 
   const sessionFile = SESSION_FILES[platform];
   onLog(`\n[Connect ${platform.toUpperCase()}] Opening real browser window for login...`);
@@ -85,6 +93,11 @@ export async function launchLoginSession(platform = 'dice', onLog = console.log)
       }
     } else if (platform === 'ziprecruiter') {
       if (currentUrl.includes('/jobseeker/home') || currentUrl.includes('/candidate/suggested') || currentUrl.includes('/jobseeker/')) {
+        connected = true;
+        break;
+      }
+    } else if (platform === 'indeed') {
+      if ((currentUrl.includes('indeed.com') && !currentUrl.includes('/account/login') && !currentUrl.includes('/auth') && !currentUrl.includes('challenge')) || currentUrl.includes('indeed.com/m/')) {
         connected = true;
         break;
       }
@@ -247,3 +260,4 @@ export async function scrapeZipRecruiterHomeFeed(onLog = console.log) {
     return [];
   }
 }
+
