@@ -808,7 +808,67 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
               alert(`✓ Resume "${data.filename}" successfully stored and activated!`);
             }
           } else {
-1
+            alert('Upload failed: ' + (data.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Upload error: ' + err.message);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Connected Platform Sessions
+    async function checkSessionStatus() {
+      try {
+        const res = await fetch('/api/sessions');
+        const data = await res.json();
+        
+        const diceBadge = document.getElementById('diceSessionBadge');
+        if (diceBadge) {
+          if (data.dice?.connected) {
+            diceBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+            diceBadge.innerText = 'Connected';
+          } else {
+            diceBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+            diceBadge.innerText = 'Not Connected';
+          }
+        }
+
+        const indeedBadge = document.getElementById('indeedSessionBadge');
+        if (indeedBadge) {
+          if (data.indeed?.connected) {
+            indeedBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+            indeedBadge.innerText = 'Connected';
+          } else {
+            indeedBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+            indeedBadge.innerText = 'Guest Mode';
+          }
+        }
+
+        const zrBadge = document.getElementById('zrSessionBadge');
+        if (zrBadge) {
+          if (data.ziprecruiter?.connected) {
+            zrBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+            zrBadge.innerText = 'Connected';
+          } else {
+            zrBadge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+            zrBadge.innerText = 'Not Connected';
+          }
+        }
+      } catch {}
+    }
+
+    async function connectPlatform(platform) {
+      alert(`Opening real browser window for ${platform.toUpperCase()}...\n\nPlease log in to your account. Once your feed or dashboard loads, AutoApply will automatically capture and save your session tokens.`);
+      try {
+        await fetch('/api/sessions/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform })
+        });
+        // Poll status every 4s for 2 minutes
+        let count = 0;
+        const interval = setInterval(async () => {
           await checkSessionStatus();
           count++;
           if (count > 30) clearInterval(interval);
