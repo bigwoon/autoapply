@@ -360,6 +360,22 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
             <input type="text" id="prof-salaryExpectation" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
           </div>
           <div>
+            <label class="block text-slate-400 mb-1">Years of Experience</label>
+            <input type="text" id="prof-yearsOfExperience" placeholder="e.g. 2" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Notice Period / Start Date</label>
+            <input type="text" id="prof-noticePeriod" placeholder="e.g. Immediately" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Postal / Zip Code</label>
+            <input type="text" id="prof-zipCode" placeholder="77433" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Degree / Highest Education</label>
+            <input type="text" id="prof-education" placeholder="Bachelor of Science in Computer Science" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+          </div>
+          <div>
             <label class="block text-slate-400 mb-1">Authorized to work in target country?</label>
             <select id="prof-workAuthorization" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
               <option value="Yes">Yes</option>
@@ -371,6 +387,31 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
             <select id="prof-needsSponsorship" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
               <option value="No">No</option>
               <option value="Yes">Yes</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Gender (EEOC Compliance)</label>
+            <select id="prof-gender" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+              <option value="Decline to self-identify">Decline to self-identify</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Non-Binary">Non-Binary</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Veteran Status (EEOC)</label>
+            <select id="prof-veteran" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+              <option value="I am not a protected veteran">I am not a protected veteran</option>
+              <option value="I identify as a protected veteran">I identify as a protected veteran</option>
+              <option value="I do not wish to answer">I do not wish to answer</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Disability Status (EEOC)</label>
+            <select id="prof-disability" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white">
+              <option value="No, I do not have a disability">No, I do not have a disability</option>
+              <option value="Yes, I have a disability">Yes, I have a disability</option>
+              <option value="I do not wish to answer">I do not wish to answer</option>
             </select>
           </div>
           <div class="md:col-span-2">
@@ -709,8 +750,9 @@ Ready. Select jobs and trigger Autopilot to see live Playwright steps...
     async function saveProfile() {
       const keys = [
         'firstName', 'lastName', 'email', 'phone', 'currentLocation', 'resumePath',
-        'linkedin', 'github', 'portfolio', 'salaryExpectation', 'workAuthorization',
-        'needsSponsorship', 'coverLetter'
+        'linkedin', 'github', 'portfolio', 'salaryExpectation', 'yearsOfExperience',
+        'noticePeriod', 'zipCode', 'education', 'workAuthorization', 'needsSponsorship',
+        'gender', 'veteran', 'disability', 'coverLetter'
       ];
       const payload = {};
       keys.forEach(k => {

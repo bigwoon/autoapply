@@ -1,16 +1,35 @@
 {
   "firstName": "Sowande",
   "lastName": "Crews",
+  "fullName": "Sowande Crews",
   "email": "Sowandec@gmail.com",
   "phone": "(346)-634-8819",
   "currentLocation": "Cypress, TX",
+  "zipCode": "77433",
   "resumePath": "C:\\Users\\User\\Documents\\rea-main\\rea-main\\autoapply\\stored_resume.pdf",
+  "resumeFileName": "Sowande_Crews_Resume.pdf",
   "linkedin": "https://linkedin.com/in/sowandecrews",
   "github": "https://github.com/bigwoon",
   "portfolio": "",
   "salaryExpectation": "130000",
+  "yearsOfExperience": "2",
+  "noticePeriod": "Immediately",
+  "education": "Bachelor of Science in Computer Science",
   "workAuthorization": "Yes",
   "needsSponsorship": "No",
+  "gender": "Decline to self-identify",
+  "veteran": "I am not a protected veteran",
+  "disability": "No, I do not have a disability",
   "coverLetter": "Full-stack software developer and technical co-founder specializing in scalable web and mobile applications, cloud integrations, and data-driven architectures. Experienced in engineering backend services with Node.js, PostgreSQL, and Prisma, deploying serverless microservices on AWS, and conducting research using Python and machine learning tools. Passionate about building impactful software solutions and contributing to community-driven initiatives.",
-  "fullName": "Sowande Crews"
+  "skills": [
+    "JavaScript",
+    "TypeScript",
+    "Python",
+    "Java",
+    "React",
+    "Node.js",
+    "PostgreSQL",
+    "MongoDB",
+    "AWS"
+  ]
 }

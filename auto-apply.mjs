@@ -17,12 +17,14 @@ function buildFieldRules(profile) {
     { match: /email/i, value: profile.email },
     { match: /phone|mobile|tel/i, value: profile.phone },
     { match: /location|city|address/i, value: profile.currentLocation },
+    { match: /postal|zip/i, value: profile.zipCode || '77433' },
     { match: /linkedin/i, value: profile.linkedin },
     { match: /github/i, value: profile.github },
     { match: /portfolio|website|url/i, value: profile.portfolio },
     { match: /salary|compensation|expected/i, value: profile.salaryExpectation },
-    { match: /years.*experience/i, value: profile.yearsOfExperience },
-    { match: /notice.*period/i, value: profile.noticePeriod },
+    { match: /years.*experience/i, value: profile.yearsOfExperience || '2' },
+    { match: /notice.*period/i, value: profile.noticePeriod || 'Immediately' },
+    { match: /education|degree|school|university/i, value: profile.education || 'Bachelor of Science in Computer Science' },
     { match: /cover.*letter|summary|about.*yourself/i, value: profile.coverLetter }
   ];
 }
@@ -117,6 +119,19 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, mo
             break;
           }
         }
+        // If field is marked required and still empty, provide a safe fallback based on input type
+        if (!filled && isRequired && !currentVal) {
+          if (type === 'number') {
+            await input.fill('1');
+            onLog(`    ℹ Filled required numeric [${descriptor.slice(0, 25)}] with safe default: 1`);
+          } else if (type === 'url') {
+            await input.fill(profile.linkedin || profile.github || 'https://linkedin.com');
+            onLog(`    ℹ Filled required URL [${descriptor.slice(0, 25)}] with profile link`);
+          } else if (/hear|source|referral/i.test(descriptor)) {
+            await input.fill('Online Job Board');
+            onLog(`    ℹ Filled referral/source field with: "Online Job Board"`);
+          }
+        }
       } catch (err) {
         // Individual field filling non-fatal error
       }
@@ -188,15 +203,17 @@ export async function applyToJob(applyUrl, profile, options = { dryRun: true, mo
 
         let desiredValue = null;
         if (/authorized|eligib/i.test(descriptor)) {
-          desiredValue = profile.workAuthorization; // "Yes"
+          desiredValue = profile.workAuthorization || 'Yes'; // "Yes"
         } else if (/sponsor|visa/i.test(descriptor)) {
-          desiredValue = profile.needsSponsorship; // "No"
+          desiredValue = profile.needsSponsorship || 'No'; // "No"
         } else if (/gender/i.test(descriptor)) {
-          desiredValue = profile.gender;
+          desiredValue = profile.gender || 'Decline to self-identify';
         } else if (/veteran/i.test(descriptor)) {
-          desiredValue = profile.veteran;
+          desiredValue = profile.veteran || 'I am not a protected veteran';
         } else if (/disability/i.test(descriptor)) {
-          desiredValue = profile.disability;
+          desiredValue = profile.disability || 'No, I do not have a disability';
+        } else if (/hear|source/i.test(descriptor)) {
+          desiredValue = 'Job Board';
         }
 
         if (desiredValue) {
